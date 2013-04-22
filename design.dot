@@ -1,0 +1,34 @@
+digraph G {
+   input [peripheries=2];
+   supply [shape=box];
+   integrate [shape=box];
+   report [shape=box];
+   ticks [peripheries=2];
+   protocol [peripheries=2];
+   steps [peripheries=2];
+   measure [peripheries=2];
+
+   input -> parse [label="cmd"];
+   parse -> supply [label="+/- supply"];
+   parse -> report [label="'?'"];
+   
+   output [peripheries=2];
+   output -> report [label="ready to write"];
+   report -> output [label="record"];
+   report -> supply [label="inspect"];
+   report -> supply [label="status",dir="back"]
+
+   parse -> ticks [style=dotted,label="tick (controlled)"];
+   ticks -> steps [label="t"];
+
+   ticks -> report [style=dotted,label="ticks (-R)"];
+   steps -> report [style=dotted,label="steps (-R)"];
+
+   integrate -> supply [label="f(t).(dn-dp)"];
+   supply -> integrate [label="<0?"];
+   integrate -> protocol [label="action"];
+
+   steps -> measure [label="t,d"];
+   measure -> integrate [label="d,f(t)"];
+  
+}
