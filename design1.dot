@@ -1,0 +1,45 @@
+digraph G {
+   input [peripheries=2];
+   output [peripheries=2];
+   protocol [peripheries=2];
+
+   subgraph cluster0 {
+      throttle [label="throttle (-R)"];
+      outmgt [shape=box];
+      any;
+      throttle -> any [label="?\n(periodic)"];
+      any -> outmgt [label="?\n(combined)"];
+      label="report";
+   }
+   subgraph cluster1 {
+   supplymgt [shape=box];
+   label="integrate";
+   }
+   subgraph cluster2 {
+   ticksource [peripheries=2];
+   sample [peripheries=2];
+   granularity [shape=box];
+   ticksource -> granularity [label="t"];
+   granularity -> sample [label="t"];
+   label="measure";
+   }
+
+   input -> parse;
+   parse -> supplymgt [label="+/-"];
+   parse -> any [label="?\n(explicit)"];
+   parse -> ticksource [label="ticks\n(-t controlled)",style=dotted];
+   
+
+   sample -> supplymgt [label="t,d,f(t)"];
+   supplymgt -> protocol [label="action"];
+
+   ticksource -> throttle [label="t\n(-R :ticks)",style=dotted];
+   sample -> throttle [label="d\n(-R :steps)",style=dotted];
+
+   outmgt -> supplymgt [label="query"];
+   supplymgt -> outmgt [label="status"];
+
+   output -> outmgt [label="ready"];
+   outmgt -> output [label="record"];
+  
+}

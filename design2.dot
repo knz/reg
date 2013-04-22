@@ -5,7 +5,7 @@ digraph G {
 
    input -> parse;
    parse -> integrate [label="+/-"];
-   parse -> report [label="? (explicit)"];
+   parse -> report [label="?"];
    parse -> measure [label="ticks (controlled)",style=dotted];
    
    measure [peripheries=2];
@@ -15,9 +15,7 @@ digraph G {
    measure -> integrate [label="t,d,f(t)"];
    integrate -> protocol [label="action"];
    
-   measure -> throttle [label="t,d",style=dotted];
-   throttle [label="throttle (-R)"];
-   throttle -> report [label="? (periodic)"];
+   measure -> report [label="t,d (-R)",style=dotted];
 
    report -> integrate [label="query"];
    integrate -> report [label="status"];
