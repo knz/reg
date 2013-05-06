@@ -1,12 +1,12 @@
 package reg
-import "reg/ticks"
+import "reg/t"
 func (d *Domain) integrate() {
 
-	steps := Steps(0)
-	ticks := ticks.Ticks(0)
+	steps := t.Steps(0)
+	ticks := t.Ticks(0)
 	nres := len(d.resources)
-	supply := make([]StuffSteps, nres)
-	deltas := make([]StuffSteps, nres)
+	supply := make([]t.StuffSteps, nres)
+	deltas := make([]t.StuffSteps, nres)
 	trigger := make([]bool, nres)
 
 	for {
@@ -14,7 +14,7 @@ func (d *Domain) integrate() {
 		select {
 		case m := <- d.measure:
 			for i := range supply {
-				deltas[i] = StuffSteps(float64(m.steps) * float64(m.usage[i]))
+				deltas[i] = t.StuffSteps(float64(m.steps) * float64(m.usage[i]))
 				v := supply[i] - deltas[i]
 				if (v > 0 && supply[i] <= 0) || v <= 0 { trigger[i] = true }
 				supply[i] = v
@@ -28,7 +28,7 @@ func (d *Domain) integrate() {
 			supply[s.bin] = v
 
 		case <- d.query:
-			v := make([]StuffSteps, nres)
+			v := make([]t.StuffSteps, nres)
 			copy(v, supply)
 			d.status <- Status{ ticks : ticks, steps : steps, usage : v }
 		}

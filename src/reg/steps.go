@@ -1,6 +1,6 @@
 package reg
 
-import ("os/exec"; "log"; "fmt")
+import ("os/exec"; "log"; "fmt"; "reg/t")
 
 func (d *Domain) stepsource() {
 	cmdc := exec.Command("sh", "-c", d.StepsCmd)
@@ -11,19 +11,19 @@ func (d *Domain) stepsource() {
 	err = cmdc.Start()
 	if err != nil {	log.Fatal(err)	}
 
-	s_prev := Steps(-1)
-	for t := range d.ticksin {
-		n, err := fmt.Fprintln(cmdin, t)
+	s_prev := t.Steps(-1)
+	for ticks := range d.ticksin {
+		n, err := fmt.Fprintln(cmdin, ticks)
 		if err != nil { log.Fatal("stepsource.cmdin ", err) }
 
-		s := Steps(0)
+		s := t.Steps(0)
 		n, err = fmt.Fscanln(cmdout, &s)
 		if err != nil || n != 1 { log.Fatal("stepsource.cmdout ", err) }
 
 		if (s_prev >= 0) {
 			s_delta := s - s_prev
 			if s_delta > 0 {
-				d.tickssteps <- TicksSteps{ ticks : t, steps : s_delta }
+				d.tickssteps <- TicksSteps{ ticks : ticks, steps : s_delta }
 				d.stepsper <- s_delta
 			}
 		}

@@ -1,6 +1,6 @@
 package reg
 
-import ("io"; "os/exec"; "log"; "fmt")
+import ("io"; "os/exec"; "log"; "fmt"; "reg/t")
 
 func (d *Domain) sample() {
 
@@ -24,7 +24,7 @@ func (d *Domain) sample() {
 	}
 
 	for st := range d.tickssteps {
-		values := make([]Stuff, nres)
+		values := make([]t.Stuff, nres)
 
 		for i := range values {
 			_, err := fmt.Fprintln(cmds[i].in, st.ticks, ' ', st.steps)

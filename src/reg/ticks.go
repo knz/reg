@@ -1,17 +1,19 @@
 package reg
-import "reg/ticks"
+
+import "reg/t"
+
 func (d *Domain) ticksource() {
 	d.tickssrc <- <- d.ticksext // forward init
 	for {
 		// forward deltas from either external tick source
 		// or input stream
-		t := ticks.Ticks(0)
+		val := t.Ticks(0)
 		select {
-		case t = <- d.ticksctl:
-		case t = <- d.ticksext:
+		case val = <- d.ticksctl:
+		case val = <- d.ticksext:
 		}
-		if t > 0 {
-			d.tickssrc <- t
+		if val > 0 {
+			d.tickssrc <- val
 		}
 	}
 }

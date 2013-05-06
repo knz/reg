@@ -1,6 +1,6 @@
 package reg
 
-import ("io"; "reg/ticks")
+import ("io"; "reg/ticks"; "reg/t")
 
 func MakeDomain(label string, ts ticks.Source) *Domain {
 	dom := Domain {
@@ -16,14 +16,14 @@ func MakeDomain(label string, ts ticks.Source) *Domain {
 		query : make(chan bool),
 		status : make(chan Status),
 		action : make(chan Action),
-		ticksctl : make(chan ticks.Ticks),
+		ticksctl : make(chan t.Ticks),
 		statusctl : make(chan bool),
-		tickssrc : make(chan ticks.Ticks),
-		ticksext : make(chan ticks.Ticks),
-		ticksin : make(chan ticks.Ticks),
-		ticksper : make(chan ticks.Ticks),
+		tickssrc : make(chan t.Ticks),
+		ticksext : make(chan t.Ticks),
+		ticksin : make(chan t.Ticks),
+		ticksper : make(chan t.Ticks),
 		tickssteps : make(chan TicksSteps),
-		stepsper : make(chan Steps),
+		stepsper : make(chan t.Steps),
 		out : make(chan string),
 		outready : make(chan bool),
 		inputdone : make(chan bool) }

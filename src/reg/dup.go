@@ -1,5 +1,5 @@
 package reg
-import "reg/ticks"
-func dupticks(out1 chan<- ticks.Ticks, out2 chan<- ticks.Ticks, in <-chan ticks.Ticks) {
+import "reg/t"
+func dupticks(out1 chan<- t.Ticks, out2 chan<- t.Ticks, in <-chan t.Ticks) {
 	for a := range in { out1 <- a; out2 <- a; }
 }

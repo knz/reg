@@ -1,37 +1,34 @@
 package reg
 
-import ("reg/ticks")
+import ("reg/ticks"; "reg/t")
 
-type Steps float64
-type Stuff float64
-type StuffSteps float64
 
 type TicksSteps struct {
-	ticks ticks.Ticks
-	steps Steps
+	ticks t.Ticks
+	steps t.Steps
 }
 
 type SupplyCmd struct {
 	bin int;
-	supply StuffSteps;
+	supply t.StuffSteps;
 }
 
 type Sample struct {
-        ticks ticks.Ticks;
-	steps Steps;
-	usage []Stuff;
+        ticks t.Ticks;
+	steps t.Steps;
+	usage []t.Stuff;
 }
 
 type Status struct {
-	ticks ticks.Ticks;
-	steps Steps;
-	usage []StuffSteps;
+	ticks t.Ticks;
+	steps t.Steps;
+	usage []t.StuffSteps;
 }
 
 type Action struct {
 	bin int;
-	currentsupply StuffSteps;
-	delta StuffSteps;
+	currentsupply t.StuffSteps;
+	delta t.StuffSteps;
 }
 
 type Resource struct {
@@ -62,14 +59,14 @@ type Domain struct {
 	query chan bool // outputmgt -> integrate
 	status chan Status // integrate -> outputmgt
 	action chan Action // integrate -> protocol
-	ticksctl chan ticks.Ticks // parse -> ticksource
+	ticksctl chan t.Ticks // parse -> ticksource
 	statusctl chan bool // parse -> outmgt
-	ticksext chan ticks.Ticks // tickext -> ticksource
-	tickssrc chan ticks.Ticks // ticksource -> dup
-	ticksin chan ticks.Ticks // dup -> stepsource
-	ticksper chan ticks.Ticks // dup -> throttle
+	ticksext chan t.Ticks // tickext -> ticksource
+	tickssrc chan t.Ticks // ticksource -> dup
+	ticksin chan t.Ticks // dup -> stepsource
+	ticksper chan t.Ticks // dup -> throttle
 	tickssteps chan TicksSteps // stepsource -> sample
-	stepsper chan Steps // stepsource -> throttle
+	stepsper chan t.Steps // stepsource -> throttle
 
 	out chan string // outmgt -> output
 	outready chan bool // output -> outmgt

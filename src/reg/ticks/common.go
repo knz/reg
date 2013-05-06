@@ -1,9 +1,9 @@
 package ticks
-
+import "reg/t"
 type ticksource_common struct {
-	source chan Ticks
+	source chan t.Ticks
 }
 
-func (ts *ticksource_common) SetSource(src chan Ticks)  {
+func (ts *ticksource_common) SetSource(src chan t.Ticks)  {
 	ts.source = src
 }

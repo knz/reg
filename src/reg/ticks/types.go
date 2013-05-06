@@ -1,8 +1,8 @@
 package ticks
 
-type Ticks float64
+import "reg/t"
 
 type Source interface {
 	Start()
-	SetSource(src chan Ticks)
+	SetSource(src chan t.Ticks)
 }

@@ -1,6 +1,6 @@
 package reg
 
-import ("io"; "bufio"; "strconv"; "strings"; "reg/ticks")
+import ("io"; "bufio"; "strconv"; "strings"; "reg/t")
 
 func (d *Domain) readlines(input io.Reader) {
 	reader := bufio.NewReader(input)
@@ -18,11 +18,11 @@ func (d *Domain) parse() {
 		switch cmdargs[0] {
 		case ".":
 			v, _ := strconv.ParseFloat(cmdargs[1], 64)
-			d.ticksctl <- ticks.Ticks(v)
+			d.ticksctl <- t.Ticks(v)
 		case "+":
 			b, _ := strconv.ParseInt(cmdargs[1], 0, 0)
 			v, _ := strconv.ParseFloat(cmdargs[2], 64)
-			d.supplycmd <- SupplyCmd{bin : int(b), supply : StuffSteps(v)}
+			d.supplycmd <- SupplyCmd{bin : int(b), supply : t.StuffSteps(v)}
 		case "?":
 			d.statusctl <- true
 		}

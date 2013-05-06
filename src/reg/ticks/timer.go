@@ -1,6 +1,6 @@
 package ticks
 
-import ("time"; "log")
+import ("time"; "log"; "reg/t")
 
 type ticksource_timer struct {
 	ticksource_common
@@ -15,10 +15,10 @@ func (ts *ticksource_timer) Start() {
 	if ts.source == nil { log.Fatal("no source channel connected") }
 
 	go func() {
-		ts.source <- Ticks(0) // initial
+		ts.source <- t.Ticks(0) // initial
 		for {
 			time.Sleep(ts.period)
-			ts.source <- Ticks(1) // delta
+			ts.source <- t.Ticks(1) // delta
 		}
 	}()
 }

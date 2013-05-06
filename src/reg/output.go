@@ -1,12 +1,12 @@
 package reg
 
-import ("log"; "fmt"; "syscall")
+import ("log"; "fmt"; "syscall"; "reg/t")
 
 
 func (d *Domain) outmgt() {
 
 	nres := len(d.resources)
-	stprev := Status{ ticks: 0, steps: 0, usage:make([]StuffSteps, nres) }
+	stprev := Status{ ticks: 0, steps: 0, usage:make([]t.StuffSteps, nres) }
 
 	doit := false
 
