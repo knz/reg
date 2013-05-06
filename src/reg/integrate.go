@@ -1,9 +1,9 @@
 package reg
-
+import "reg/ticks"
 func (d *Domain) integrate() {
 
 	steps := Steps(0)
-	ticks := Ticks(0)
+	ticks := ticks.Ticks(0)
 	nres := len(d.resources)
 	supply := make([]StuffSteps, nres)
 	deltas := make([]StuffSteps, nres)

@@ -1,12 +1,13 @@
 package reg
 
-type Ticks float64
+import ("reg/ticks")
+
 type Steps float64
 type Stuff float64
 type StuffSteps float64
 
 type TicksSteps struct {
-	ticks Ticks
+	ticks ticks.Ticks
 	steps Steps
 }
 
@@ -16,13 +17,13 @@ type SupplyCmd struct {
 }
 
 type Sample struct {
-        ticks Ticks;
+        ticks ticks.Ticks;
 	steps Steps;
 	usage []Stuff;
 }
 
 type Status struct {
-	ticks Ticks;
+	ticks ticks.Ticks;
 	steps Steps;
 	usage []StuffSteps;
 }
@@ -40,14 +41,10 @@ type Resource struct {
 
 const ( ThrottleSteps = iota; ThrottleTicks )
 
-type TickSource interface {
-	Start()
-	GetSource() chan Ticks
-}
 
 type Domain struct {
 	Label string
-	TickSource TickSource
+	TickSource ticks.Source
 	StepsCmd string
 	ProtocolCmd string
 	OutputFile string
@@ -65,11 +62,12 @@ type Domain struct {
 	query chan bool // outputmgt -> integrate
 	status chan Status // integrate -> outputmgt
 	action chan Action // integrate -> protocol
-	ticksctl chan Ticks // parse -> ticksource
+	ticksctl chan ticks.Ticks // parse -> ticksource
 	statusctl chan bool // parse -> outmgt
-	tickssrc chan Ticks // ticksource -> dup
-	ticksin chan Ticks // dup -> stepsource
-	ticksper chan Ticks // dup -> throttle
+	ticksext chan ticks.Ticks // tickext -> ticksource
+	tickssrc chan ticks.Ticks // ticksource -> dup
+	ticksin chan ticks.Ticks // dup -> stepsource
+	ticksper chan ticks.Ticks // dup -> throttle
 	tickssteps chan TicksSteps // stepsource -> sample
 	stepsper chan Steps // stepsource -> throttle
 

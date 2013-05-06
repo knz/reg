@@ -1,24 +1,24 @@
 package main
 
-import ("os"; "reg"; "time"; "log")
+import ("os"; "reg"; "time"; "log"; "reg/ticks")
 
 func main() {
-	var ts reg.TickSource
+	var ts ticks.Source
 	ts = nil
 
 	if len(os.Args) > 1 {
 		if os.Args[1] == "time" {
 			d, err := time.ParseDuration(os.Args[2])
 			if err != nil {	log.Fatal(err)}
-			ts = reg.MakeTimerSource(d)
+			ts = ticks.MakeTimerSource(d)
 		} else {
 			st := 0
 			switch os.Args[2] {
-			case "monotonic": st = reg.TS_MONOTONIC
-			case "deltas_only": st = reg.TS_DELTAS_ONLY
-			default: st = reg.TS_INIT_THEN_DELTAS
+			case "monotonic": st = ticks.TS_MONOTONIC
+			case "deltas_only": st = ticks.TS_DELTAS_ONLY
+			default: st = ticks.TS_INIT_THEN_DELTAS
 			}
-			ts = reg.MakeCommandSource(os.Args[3], st)
+			ts = ticks.MakeCommandSource(os.Args[3], st)
 		}
 	}
 	d := reg.MakeDomain("default", ts)

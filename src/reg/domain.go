@@ -1,8 +1,8 @@
 package reg
 
-import ("io")
+import ("io"; "reg/ticks")
 
-func MakeDomain(label string, ts TickSource) *Domain {
+func MakeDomain(label string, ts ticks.Source) *Domain {
 	dom := Domain {
 		Label : label,
 		ProtocolCmd : "while true; do read a || break; echo ACTION: $a >/dev/tty; done",
@@ -16,11 +16,12 @@ func MakeDomain(label string, ts TickSource) *Domain {
 		query : make(chan bool),
 		status : make(chan Status),
 		action : make(chan Action),
-		ticksctl : make(chan Ticks),
+		ticksctl : make(chan ticks.Ticks),
 		statusctl : make(chan bool),
-		tickssrc : make(chan Ticks),
-		ticksin : make(chan Ticks),
-		ticksper : make(chan Ticks),
+		tickssrc : make(chan ticks.Ticks),
+		ticksext : make(chan ticks.Ticks),
+		ticksin : make(chan ticks.Ticks),
+		ticksper : make(chan ticks.Ticks),
 		tickssteps : make(chan TicksSteps),
 		stepsper : make(chan Steps),
 		out : make(chan string),
@@ -32,6 +33,7 @@ func MakeDomain(label string, ts TickSource) *Domain {
 }
 
 func (d *Domain) Start(input io.Reader) {
+	d.TickSource.SetSource(d.ticksext)
 	d.TickSource.Start()
 	go d.readlines(input)
 	go d.parse()
