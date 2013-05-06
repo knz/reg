@@ -6,15 +6,11 @@ digraph G {
    subgraph cluster0 {
       throttle [label="throttle (-R)"];
       outmgt [shape=box];
-      any;
-      throttle -> any [label="?\n(periodic)"];
-      any -> outmgt [label="?\n(combined)"];
+      throttle -> outmgt [label="?\n(periodic)"];
       label="report";
    }
-   subgraph cluster1 {
-   supplymgt [shape=box];
-   label="integrate";
-   }
+   integrate [shape=box];
+
    subgraph cluster2 {
    ticksource [peripheries=2];
    sample [peripheries=2];
@@ -25,19 +21,19 @@ digraph G {
    }
 
    input -> parse;
-   parse -> supplymgt [label="+/-"];
-   parse -> any [label="?\n(explicit)"];
+   parse -> integrate [label="+/-"];
+   parse -> outmgt [label="?\n(explicit)"];
    parse -> ticksource [label="ticks\n(-t controlled)",style=dotted];
    
 
-   sample -> supplymgt [label="t,d,f(t)"];
-   supplymgt -> protocol [label="action"];
+   sample -> integrate [label="t,d,f(t)"];
+   integrate -> protocol [label="action"];
 
    ticksource -> throttle [label="t\n(-R :ticks)",style=dotted];
    sample -> throttle [label="d\n(-R :steps)",style=dotted];
 
-   outmgt -> supplymgt [label="query"];
-   supplymgt -> outmgt [label="status"];
+   outmgt -> integrate [label="query"];
+   integrate -> outmgt [label="status"];
 
    output -> outmgt [label="ready"];
    outmgt -> output [label="record"];

@@ -163,9 +163,10 @@ example, ``-t 3600 realseconds`` uses hours as tick unit, and ``-t
 specified, it defaults to 1. For example, ``-t 1 realseconds`` is
 equivalent to ``-t realseconds``.
 
-The multiplier can also be specified using a SI multiplier: ``k`` for
-1000, ``m`` for 0.001, etc. For example ``-t p spentjoules`` is
-equivalent to ``-t 1e-12 spentjoules``.
+.. TBD: whether to use SI multipliers?
+.. The multiplier can also be specified using a SI multiplier: ``k`` for
+.. 1000, ``m`` for 0.001, etc. For example ``-t p spentjoules`` is
+.. equivalent to ``-t 1e-12 spentjoules``.
 
 Custom discretizations can be defined using the following options:
 
@@ -258,8 +259,8 @@ shell wildcard pattern, using the syntax recognized by fnmatch(1). If
 a pattern matches multiple resource labels, the operation (add or
 substract) is performed on all of them.
 
-All amounts (or ticks for ``.``) can be followed by an SI
-multiplier. For example, ``. 1k`` is equivalent to ``. 1000``.
+.. All amounts (or ticks for ``.``) can be followed by an SI
+.. multiplier. For example, ``. 1k`` is equivalent to ``. 1000``.
 
 
 OUTPUT FORMAT
@@ -268,8 +269,6 @@ OUTPUT FORMAT
 Each status record ends with a newline
 character, and is composed of the following space-separated columns:
 
-- the tag from command ``?``, or ``-`` if the record is produced automatically
-  from ``-R`` (cf `OUTPUT RATE`_ below)
 - the label of the management domain (cf. `MANAGEMENT DOMAINS`_ below),
 - the current tick,
 - the tick delta (number of ticks elapsed since the last status record),
@@ -279,8 +278,7 @@ character, and is composed of the following space-separated columns:
 
   - the label of the function,
   - the current supply,
-  - the amount of supply added/substracted on the input stream since the last status record,
-  - the amount of supply substracted by the process execution since the last status record,
+  - the amount of supply change since the last status record,
 
 - the number of threads harnessed,
 - for each thread harnessed:
@@ -296,8 +294,10 @@ command on the input stream.
 
 Additionally, the option ``-R <N>.steps`` and ``-R <N>.ticks``
 instructs ``reg`` to emit records periodically, with the period
-specified (either steps or ticks). The number can be followed by an SI
-multiplier.
+specified (either steps or ticks).
+
+.. The number can be followed by an SI
+.. multiplier.
 
 ``reg`` does not block on output: if the output stream is blocked, the
 deltas accumulate until ``reg`` becomes able to output records again. If
@@ -374,7 +374,7 @@ Option             Description
 
 With ``-p fd``, the following commands are sent to the specified file:
 
-``overflow <RES> <SUPPLY> <DELTA> <DOM> <PIDs...>``
+``overflow <RES> <SUPPLY> <DELTA> <PIDs...>``
 
     Signal an overflow. The fields are as follows:
 
@@ -384,7 +384,6 @@ With ``-p fd``, the following commands are sent to the specified file:
     ``<RES>``      Resource label causing the overflow, as configured by ``-r``.
     ``<SUPPLY>``   Current supply for the resource.
     ``<DELTA>``    Last amount substracted by the process.
-    ``<DOM>``      cf. `MANAGEMENT DOMAINS`_ below.
     ``<PIDs...>``  Current list of harnessed processes.
     ============== =================================
 
@@ -393,7 +392,7 @@ With ``-p fd``, the following commands are sent to the specified file:
 
 With ``-p run``, the specified command is invoked as follows:
 
-``<CMD> overflow <RES> <SUPPLY> <DELTA> <DOM> <PIDs...>``
+``<CMD> overflow <RES> <SUPPLY> <DELTA> <PIDs...>``
 
 or
 
