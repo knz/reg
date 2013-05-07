@@ -1,16 +1,19 @@
 package steps
 
-import "reg/t"
+import (
+	"log"
+	"reg/t"
+)
 
 type stepsource_common struct {
-	source chan TicksSteps
+	source chan t.TicksSteps
 	ticks  chan t.Ticks
 }
 
 func (ts *stepsource_common) SetTicks(ticks chan t.Ticks) {
 	ts.ticks = ticks
 }
-func (ts *stepsource_common) SetSource(src chan t.Steps) {
+func (ts *stepsource_common) SetSource(src chan t.TicksSteps) {
 	ts.source = src
 }
 
@@ -24,12 +27,12 @@ func (ts *stepsource_common) Check() {
 
 }
 
-func TeeSteps(src chan TicksSteps, dst chan TicksSteps, tee chan Steps) {
+func TeeSteps(src chan t.TicksSteps, dst chan t.TicksSteps, tee chan t.Steps) {
 	go func() {
 		for {
 			v := <-src
 			dst <- v
-			tee <- v.steps
+			tee <- v.Steps
 		}
 	}()
 }

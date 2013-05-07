@@ -4,39 +4,78 @@ import (
 	"log"
 	"os"
 	"reg"
+	"reg/steps"
+	"reg/t"
 	"reg/ticks"
 	"time"
 )
 
 func main() {
 	var ts ticks.Source
-	ts = nil
+	var ss steps.Source
 
-	if len(os.Args) > 1 {
-		if os.Args[1] == "time" {
-			d, err := time.ParseDuration(os.Args[2])
-			if err != nil {
-				log.Fatal(err)
-			}
-			ts = ticks.MakeTimerSource(d)
-		} else {
-			st := 0
-			switch os.Args[2] {
-			case "monotonic":
-				st = ticks.TS_MONOTONIC
-			case "deltas_only":
-				st = ticks.TS_DELTAS_ONLY
+	i := 1
+	for len(os.Args) > i {
+		switch os.Args[i] {
+		case "ticks":
+			switch os.Args[i+1] {
+			case "dummy":
+				ts = ticks.MakeDummySource()
+				i += 1
+			case "time":
+				d, err := time.ParseDuration(os.Args[i+2])
+				if err != nil {
+					log.Fatal(err)
+				}
+				ts = ticks.MakeTimerSource(d)
+				i += 2
 			default:
-				st = ticks.TS_INIT_THEN_DELTAS
+				st := 0
+				switch os.Args[i+2] {
+				case "monotonic":
+					st = t.SRC_MONOTONIC
+				case "deltas_only":
+					st = t.SRC_DELTAS_ONLY
+				default:
+					st = t.SRC_INIT_THEN_DELTAS
+				}
+				ts = ticks.MakeCommandSource(os.Args[i+3], st)
+				i += 3
 			}
-			ts = ticks.MakeCommandSource(os.Args[3], st)
+		case "steps":
+			switch os.Args[i+1] {
+			case "dummy":
+				ss = steps.MakeDummySource()
+				i += 1
+			default:
+				st := 0
+				switch os.Args[i+2] {
+				case "monotonic":
+					st = t.SRC_MONOTONIC
+				case "deltas_only":
+					st = t.SRC_DELTAS_ONLY
+				default:
+					st = t.SRC_INIT_THEN_DELTAS
+				}
+				switch os.Args[i+1] {
+				case "one":
+					ss = steps.MakeCommandSource(os.Args[i+3], st)
+				default:
+					ss = steps.MakeInteractiveCommandSource(os.Args[i+3], st)
+				}
+				i += 3
+			}
+		default:
+			i += 1
 		}
+
 	}
-	d := reg.MakeDomain("default", ts)
+
+	d := reg.MakeDomain("default", ts, ss)
 	d.ThrottleType = reg.ThrottleTicks
 	d.ThrottleMinPeriod = 0.01
 	d.OutputFile = "/dev/stdout"
-	d.StepsCmd = "while true; do read a || break; LANG=C ps -o cputime= -p 28403|tr ':.' '  '| LANG=C awk '{print $1*60+$2+$3/100. }'; done"
+	// d.StepsCmd = "while true; do read a || break; LANG=C ps -o cputime= -p 28403|tr ':.' '  '| LANG=C awk '{print $1*60+$2+$3/100. }'; done"
 	d.AddResource("time", "while true; do read a || break; LANG=C ps -o cputime= -p 28403|tr ':.' '  '|LANG=C awk '{print $1*60+$2+$3/100. }'; done")
 	d.Start(os.Stdin)
 	d.Wait()

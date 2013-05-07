@@ -39,7 +39,7 @@ func (d *Domain) sample() {
 		values := make([]t.Stuff, nres)
 
 		for i := range values {
-			_, err := fmt.Fprintln(cmds[i].in, st.ticks, ' ', st.steps)
+			_, err := fmt.Fprintln(cmds[i].in, st.Ticks, ' ', st.Steps)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -51,6 +51,6 @@ func (d *Domain) sample() {
 			}
 		}
 
-		d.measure <- Sample{ticks: st.ticks, steps: st.steps, usage: values}
+		d.measure <- Sample{ticks: st.Ticks, steps: st.Steps, usage: values}
 	}
 }

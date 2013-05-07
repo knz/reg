@@ -35,6 +35,10 @@ func (ts *ticksource_cmd) Start() {
 
 	go func() {
 		lastval := t.Ticks(0)
+		if ts.sourcetype == t.SRC_DELTAS_ONLY {
+			// no initial value provided by command, fake one
+			ts.source <- t.Ticks(0)
+		}
 		for {
 			tickstr, _ := reader.ReadString('\n')
 			v, err := strconv.ParseFloat(tickstr[:len(tickstr)-1], 64)
@@ -42,18 +46,14 @@ func (ts *ticksource_cmd) Start() {
 				log.Fatal(err)
 			}
 			val := t.Ticks(v)
+
 			if ts.sourcetype == t.SRC_MONOTONIC {
-				// next value: compute delta; first is init
-				ts.source <- val - lastval
+				tmp := val - lastval
 				lastval = val
-			} else {
-				if ts.sourcetype == t.SRC_DELTAS_ONLY {
-					// no initial value provided by command, fake one
-					ts.source <- t.Ticks(0)
-				}
-				// forward either init or delta
-				ts.source <- val
+				val = tmp
 			}
+
+			ts.source <- val
 		}
 	}()
 }

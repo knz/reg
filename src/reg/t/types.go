@@ -10,3 +10,8 @@ const (
 	SRC_INIT_THEN_DELTAS
 	SRC_DELTAS_ONLY
 )
+
+type TicksSteps struct {
+	Ticks Ticks
+	Steps Steps
+}

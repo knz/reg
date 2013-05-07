@@ -1,14 +1,10 @@
 package reg
 
 import (
+	"reg/steps"
 	"reg/t"
 	"reg/ticks"
 )
-
-type TicksSteps struct {
-	ticks t.Ticks
-	steps t.Steps
-}
 
 type SupplyCmd struct {
 	bin    int
@@ -46,7 +42,7 @@ const (
 type Domain struct {
 	Label       string
 	TickSource  ticks.Source
-	StepsCmd    string
+	StepSource  steps.Source
 	ProtocolCmd string
 	OutputFile  string
 
@@ -57,20 +53,21 @@ type Domain struct {
 	resources map[int]Resource
 
 	// Channels
-	input      chan string     // readlines -> parse
-	supplycmd  chan SupplyCmd  // parse -> integrate
-	measure    chan Sample     // sample -> integrate
-	query      chan bool       // outputmgt -> integrate
-	status     chan Status     // integrate -> outputmgt
-	action     chan Action     // integrate -> protocol
-	ticksctl   chan t.Ticks    // parse -> ticksource
-	statusctl  chan bool       // parse -> outmgt
-	ticksext   chan t.Ticks    // tickext -> ticksource
-	tickssrc   chan t.Ticks    // ticksource -> dup
-	ticksin    chan t.Ticks    // dup -> stepsource
-	ticksper   chan t.Ticks    // dup -> throttle
-	tickssteps chan TicksSteps // stepsource -> sample
-	stepsper   chan t.Steps    // stepsource -> throttle
+	input       chan string       // readlines -> parse
+	supplycmd   chan SupplyCmd    // parse -> integrate
+	measure     chan Sample       // sample -> integrate
+	query       chan bool         // outputmgt -> integrate
+	status      chan Status       // integrate -> outputmgt
+	action      chan Action       // integrate -> protocol
+	ticksctl    chan t.Ticks      // parse -> ticksource
+	statusctl   chan bool         // parse -> outmgt
+	ticksext    chan t.Ticks      // tickext -> ticksource
+	tickssrc    chan t.Ticks      // ticksource -> dup
+	ticksin     chan t.Ticks      // dup -> stepsource
+	ticksper    chan t.Ticks      // dup -> throttle
+	tickssteps1 chan t.TicksSteps // stepsource -> teesteps
+	tickssteps  chan t.TicksSteps // teesteps -> sample
+	stepsper    chan t.Steps      // teesteps -> throttle
 
 	out      chan string // outmgt -> output
 	outready chan bool   // output -> outmgt
