@@ -4,11 +4,15 @@ func (d *Domain) throttle() {
 	val := float64(0)
 	for {
 		select {
-		case ticks := <- d.ticksper:
-			if d.ThrottleType != ThrottleTicks { continue }
+		case ticks := <-d.ticksper:
+			if d.ThrottleType != ThrottleTicks {
+				continue
+			}
 			val += float64(ticks)
-		case steps := <- d.stepsper:
-			if d.ThrottleType != ThrottleSteps { continue }
+		case steps := <-d.stepsper:
+			if d.ThrottleType != ThrottleSteps {
+				continue
+			}
 			val += float64(steps)
 		}
 		if val >= d.ThrottleMinPeriod {

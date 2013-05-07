@@ -1,19 +1,28 @@
 package reg
 
-import ("io"; "bufio"; "strconv"; "strings"; "reg/t")
+import (
+	"bufio"
+	"io"
+	"reg/t"
+	"strconv"
+	"strings"
+)
 
 func (d *Domain) readlines(input io.Reader) {
 	reader := bufio.NewReader(input)
 	for {
 		cmdstr, err := reader.ReadString('\n')
-		if err == io.EOF { d.inputdone <- true; break }
+		if err == io.EOF {
+			d.inputdone <- true
+			break
+		}
 		d.input <- cmdstr[:len(cmdstr)-1]
 	}
 }
 
 func (d *Domain) parse() {
 	for cmd := range d.input {
-		cmdargs := strings.Split(cmd, " ");
+		cmdargs := strings.Split(cmd, " ")
 
 		switch cmdargs[0] {
 		case ".":
@@ -22,7 +31,7 @@ func (d *Domain) parse() {
 		case "+":
 			b, _ := strconv.ParseInt(cmdargs[1], 0, 0)
 			v, _ := strconv.ParseFloat(cmdargs[2], 64)
-			d.supplycmd <- SupplyCmd{bin : int(b), supply : t.StuffSteps(v)}
+			d.supplycmd <- SupplyCmd{bin: int(b), supply: t.StuffSteps(v)}
 		case "?":
 			d.statusctl <- true
 		}

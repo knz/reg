@@ -1,6 +1,12 @@
 package reg
 
-import ("io"; "os/exec"; "log"; "fmt"; "reg/t")
+import (
+	"fmt"
+	"io"
+	"log"
+	"os/exec"
+	"reg/t"
+)
 
 func (d *Domain) sample() {
 
@@ -9,18 +15,24 @@ func (d *Domain) sample() {
 	type ResourceCmd struct {
 		cmd *exec.Cmd
 		out io.ReadCloser
-		in io.WriteCloser
+		in  io.WriteCloser
 	}
 	cmds := make([]ResourceCmd, nres)
 	for i := range cmds {
 		cmds[i].cmd = exec.Command("sh", "-c", d.resources[i].cmd)
 		cmdout, err := cmds[i].cmd.StdoutPipe()
-		if err != nil {	log.Fatal(err)	}
+		if err != nil {
+			log.Fatal(err)
+		}
 		cmds[i].out = cmdout
 		cmds[i].in, err = cmds[i].cmd.StdinPipe()
-		if err != nil {	log.Fatal(err)	}
+		if err != nil {
+			log.Fatal(err)
+		}
 		err = cmds[i].cmd.Start()
-		if err != nil {	log.Fatal(err)	}
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	for st := range d.tickssteps {
@@ -28,13 +40,17 @@ func (d *Domain) sample() {
 
 		for i := range values {
 			_, err := fmt.Fprintln(cmds[i].in, st.ticks, ' ', st.steps)
-			if err != nil {	log.Fatal(err)	}
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 		for i := range values {
 			n, err := fmt.Fscanln(cmds[i].out, &values[i])
-			if err != nil || n != 1 { log.Fatal(err) }
+			if err != nil || n != 1 {
+				log.Fatal(err)
+			}
 		}
 
-		d.measure <- Sample{ticks:st.ticks, steps:st.steps, usage : values}
+		d.measure <- Sample{ticks: st.ticks, steps: st.steps, usage: values}
 	}
 }

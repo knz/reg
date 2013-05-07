@@ -1,49 +1,53 @@
 package ticks
 
-import ("log"; "os"; "os/exec"; "bufio"; "strconv"; "reg/t")
-
-const (
-	TS_MONOTONIC = iota
-	TS_INIT_THEN_DELTAS
-	TS_DELTAS_ONLY
+import (
+	"bufio"
+	"log"
+	"os"
+	"os/exec"
+	"reg/t"
+	"strconv"
 )
 
 type ticksource_cmd struct {
 	ticksource_common
-	cmd string
-	sourcetype int // TS_* above
+	cmd        string
+	sourcetype int
 }
 
 func (ts *ticksource_cmd) Start() {
-	if ts.source == nil { log.Fatal("no source channel connected") }
+	ts.Check()
 
 	shell := os.Getenv("SHELL")
-	if shell == "" { shell = "sh" }
+	if shell == "" {
+		shell = "sh"
+	}
 	cmdc := exec.Command(shell, "-c", ts.cmd)
 	cmdout, err := cmdc.StdoutPipe()
-	if err != nil {	log.Fatal(err)	}
+	if err != nil {
+		log.Fatal(err)
+	}
 	err = cmdc.Start()
-	if err != nil {	log.Fatal(err)	}
+	if err != nil {
+		log.Fatal(err)
+	}
 	reader := bufio.NewReader(cmdout)
 
 	go func() {
-		lastval := t.Ticks(-1)
+		lastval := t.Ticks(0)
 		for {
 			tickstr, _ := reader.ReadString('\n')
 			v, err := strconv.ParseFloat(tickstr[:len(tickstr)-1], 64)
-			if err != nil {	log.Fatal(err)	}
+			if err != nil {
+				log.Fatal(err)
+			}
 			val := t.Ticks(v)
-			if (ts.sourcetype == TS_MONOTONIC) {
-				if (lastval < 0) {
-					// first value: forward init
-					ts.source <- val
-				} else {
-					// next value: compute delta
-					ts.source <- val - lastval
-				}
+			if ts.sourcetype == t.SRC_MONOTONIC {
+				// next value: compute delta; first is init
+				ts.source <- val - lastval
 				lastval = val
 			} else {
-				if (ts.sourcetype == TS_DELTAS_ONLY) {
+				if ts.sourcetype == t.SRC_DELTAS_ONLY {
 					// no initial value provided by command, fake one
 					ts.source <- t.Ticks(0)
 				}
@@ -55,5 +59,5 @@ func (ts *ticksource_cmd) Start() {
 }
 
 func MakeCommandSource(cmd string, sourcetype int) Source {
-	return &ticksource_cmd{cmd:cmd, sourcetype:sourcetype}
+	return &ticksource_cmd{cmd: cmd, sourcetype: sourcetype}
 }
