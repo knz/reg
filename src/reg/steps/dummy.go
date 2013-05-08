@@ -14,8 +14,8 @@ func (ts *stepsource_dummy) Start() {
 	ts.Check()
 
 	go func() {
-		for {
-			ts.source <- t.TicksSteps{<-ts.ticks, 0}
+		for ticks := range ts.ticks {
+			ts.source <- t.TicksSteps{ticks, 0}
 		}
 	}()
 }

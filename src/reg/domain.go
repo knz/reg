@@ -2,17 +2,18 @@ package reg
 
 import (
 	"io"
+	"reg/act"
 	"reg/steps"
 	"reg/t"
 	"reg/ticks"
 )
 
-func MakeDomain(label string, ts ticks.Source, ss steps.Source) *Domain {
+func MakeDomain(label string, ts ticks.Source, ss steps.Source, actuator act.Actuator) *Domain {
 	dom := Domain{
-		Label:       label,
-		ProtocolCmd: "while true; do read a || break; echo ACTION: $a >/dev/tty; done",
-		TickSource:  ts,
-		StepSource:  ss,
+		Label:      label,
+		TickSource: ts,
+		StepSource: ss,
+		Actuator:   actuator,
 
 		resources: make(map[int]Resource),
 
@@ -21,7 +22,7 @@ func MakeDomain(label string, ts ticks.Source, ss steps.Source) *Domain {
 		measure:     make(chan Sample),
 		query:       make(chan bool),
 		status:      make(chan Status),
-		action:      make(chan Action),
+		action:      make(chan act.Action),
 		ticksctl:    make(chan t.Ticks),
 		statusctl:   make(chan bool),
 		tickssrc:    make(chan t.Ticks),
@@ -42,16 +43,16 @@ func (d *Domain) Start(input io.Reader) {
 	d.TickSource.SetSource(d.ticksext)
 	d.StepSource.SetTicks(d.tickssrc)
 	d.StepSource.SetSource(d.tickssteps1)
-
+	d.Actuator.SetInput(d.action)
 	steps.TeeSteps(d.tickssteps1, d.tickssteps, d.stepsper)
+	ticks.TeeTicks(d.ticksin, d.ticksper, d.tickssrc)
 	d.TickSource.Start()
 	d.StepSource.Start()
+	d.Actuator.Start()
 	go d.readlines(input)
 	go d.parse()
 	go d.integrate()
-	go d.protocol()
 	go d.ticksource()
-	go dupticks(d.ticksin, d.ticksper, d.tickssrc)
 	go d.sample()
 	go d.throttle()
 	go d.outmgt()

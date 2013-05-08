@@ -1,5 +1,7 @@
 package reg
 
+import "math"
+
 func (d *Domain) throttle() {
 	val := float64(0)
 	for {
@@ -17,7 +19,7 @@ func (d *Domain) throttle() {
 		}
 		if val >= d.ThrottleMinPeriod {
 			d.statusctl <- true
-			val = 0
+			val = math.Mod(val, d.ThrottleMinPeriod)
 		}
 	}
 }

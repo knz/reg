@@ -1,6 +1,7 @@
 package reg
 
 import (
+	"reg/act"
 	"reg/steps"
 	"reg/t"
 	"reg/ticks"
@@ -23,12 +24,6 @@ type Status struct {
 	usage []t.StuffSteps
 }
 
-type Action struct {
-	bin           int
-	currentsupply t.StuffSteps
-	delta         t.StuffSteps
-}
-
 type Resource struct {
 	label string
 	cmd   string
@@ -40,11 +35,11 @@ const (
 )
 
 type Domain struct {
-	Label       string
-	TickSource  ticks.Source
-	StepSource  steps.Source
-	ProtocolCmd string
-	OutputFile  string
+	Label      string
+	TickSource ticks.Source
+	StepSource steps.Source
+	Actuator   act.Actuator
+	OutputFile string
 
 	ThrottleType      int
 	ThrottleMinPeriod float64
@@ -58,7 +53,7 @@ type Domain struct {
 	measure     chan Sample       // sample -> integrate
 	query       chan bool         // outputmgt -> integrate
 	status      chan Status       // integrate -> outputmgt
-	action      chan Action       // integrate -> protocol
+	action      chan act.Action   // integrate -> actuator
 	ticksctl    chan t.Ticks      // parse -> ticksource
 	statusctl   chan bool         // parse -> outmgt
 	ticksext    chan t.Ticks      // tickext -> ticksource

@@ -1,50 +1,66 @@
 package reg
 
-import "reg/t"
+import (
+	"reg/act"
+	"reg/t"
+)
 
 func (d *Domain) integrate() {
 
-	steps := t.Steps(0)
-	ticks := t.Ticks(0)
+	dropfirst := true
 	nres := len(d.resources)
 	supply := make([]t.StuffSteps, nres)
-	deltas := make([]t.StuffSteps, nres)
-	trigger := make([]bool, nres)
+	q_ticks := t.Ticks(0)
+	q_steps := t.Steps(0)
+	a_ticks := t.Ticks(0)
+	a_steps := t.Steps(0)
+	a_prev_supply := make([]t.StuffSteps, nres)
 
 	for {
-		for i := range trigger {
-			trigger[i] = false
-		}
 		select {
 		case m := <-d.measure:
-			for i := range supply {
-				deltas[i] = t.StuffSteps(float64(m.steps) * float64(m.usage[i]))
-				v := supply[i] - deltas[i]
-				if (v > 0 && supply[i] <= 0) || v <= 0 {
-					trigger[i] = true
-				}
-				supply[i] = v
+			if dropfirst {
+				dropfirst = false
+				continue
 			}
-			steps += m.steps
-			ticks += m.ticks
+			for i := range supply {
+				delta := t.StuffSteps(float64(m.steps) * float64(m.usage[i]))
+				supply[i] -= delta
+			}
+			q_steps += m.steps
+			q_steps += m.steps
+			a_ticks += m.ticks
+			a_ticks += m.ticks
 
 		case s := <-d.supplycmd:
-			v := supply[s.bin] + s.supply
-			if (v > 0 && supply[s.bin] <= 0) || v <= 0 {
-				trigger[s.bin] = true
-			}
-			supply[s.bin] = v
+			supply[s.bin] += s.supply
 
 		case <-d.query:
 			v := make([]t.StuffSteps, nres)
 			copy(v, supply)
-			d.status <- Status{ticks: ticks, steps: steps, usage: v}
+			d.status <- Status{ticks: q_ticks, steps: q_steps, usage: v}
+			q_ticks = t.Ticks(0)
+			q_steps = t.Steps(0)
 		}
 
-		for i, t := range trigger {
-			if t {
-				d.action <- Action{bin: i, currentsupply: supply[i], delta: deltas[i]}
+		trigger := false
+		for i, v := range supply {
+			if v < 0 || (v >= 0 && a_prev_supply[i] < 0) {
+				trigger = true
 			}
 		}
+		if trigger {
+			v1 := make([]t.StuffSteps, nres)
+			copy(v1, supply)
+			v2 := make([]t.StuffSteps, nres)
+			for i, v := range supply {
+				v2[i] = v - a_prev_supply[i]
+			}
+			d.action <- act.Action{d.Label, a_ticks, a_steps, v1, v2}
+			a_ticks = t.Ticks(0)
+			a_steps = t.Steps(0)
+			copy(a_prev_supply, supply)
+		}
+
 	}
 }

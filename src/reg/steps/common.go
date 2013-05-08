@@ -29,8 +29,7 @@ func (ts *stepsource_common) Check() {
 
 func TeeSteps(src chan t.TicksSteps, dst chan t.TicksSteps, tee chan t.Steps) {
 	go func() {
-		for {
-			v := <-src
+		for v := range src {
 			dst <- v
 			tee <- v.Steps
 		}
