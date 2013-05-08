@@ -72,7 +72,10 @@ func main() {
 
 	}
 
-	a := act.MakePrinterActuator(os.Stderr)
+	//	a := act.MakePrinterActuator(os.Stderr)
+	// a := act.MakeDummyActuator()
+	// a := act.MakeCommandActuator("echo ACT $0 $@ >/dev/tty")
+	a := act.MakeInteractiveCommandActuator("while true; do read a; echo ACT $a >/dev/tty; done")
 	d := reg.MakeDomain("default", ts, ss, a)
 	d.ThrottleType = reg.ThrottleTicks
 	d.ThrottleMinPeriod = 0.01

@@ -3,14 +3,10 @@ package reg
 import (
 	"fmt"
 	"log"
-	"reg/t"
 	"syscall"
 )
 
 func (d *Domain) outmgt() {
-
-	nres := len(d.resources)
-	stprev := Status{ticks: 0, steps: 0, usage: make([]t.StuffSteps, nres)}
 
 	doit := false
 
@@ -29,21 +25,13 @@ func (d *Domain) outmgt() {
 		d.query <- true
 		st := <-d.status
 
-		if st.ticks == 0 {
-			d.out <- fmt.Sprint(d.Label, " -\n")
-		} else {
-			msg := fmt.Sprint(d.Label, " ",
-				st.ticks, " ", st.ticks-stprev.ticks, " ",
-				st.steps, " ", st.steps-stprev.steps, " ",
-				nres)
-			for i := range st.usage {
-				msg += fmt.Sprint(" ", d.resources[i].label,
-					" ", st.usage[i],
-					" ", st.usage[i]-stprev.usage[i])
-			}
-			d.out <- msg + "\n"
-			stprev = st
+		msg := fmt.Sprint(d.Label, " ",
+			st.Ticks, " ", st.TicksDelta, " ",
+			st.Steps, " ", st.StepsDelta)
+		for i, v := range st.Supply {
+			msg += fmt.Sprint(" ", v, " ", st.Delta[i])
 		}
+		d.out <- msg + "\n"
 	}
 }
 

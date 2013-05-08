@@ -18,12 +18,10 @@ func (act *actuator_printer) Start() {
 	go func() {
 		for action := range act.source {
 			s := fmt.Sprint(action.DomainLabel, " ",
-				action.TicksDelta, " ",
-				action.StepsDelta, " ",
-				len(action.Supply))
+				action.Ticks, " ", action.TicksDelta, " ",
+				action.Steps, " ", action.StepsDelta)
 			for i, v := range action.Supply {
-				s += fmt.Sprint(" ",
-					v, " ", action.Delta[i])
+				s += fmt.Sprint(" ", v, " ", action.Delta[i])
 			}
 			s += "\n"
 			act.out.Write([]byte(s))

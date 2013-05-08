@@ -18,12 +18,6 @@ type Sample struct {
 	usage []t.Stuff
 }
 
-type Status struct {
-	ticks t.Ticks
-	steps t.Steps
-	usage []t.StuffSteps
-}
-
 type Resource struct {
 	label string
 	cmd   string
@@ -52,8 +46,8 @@ type Domain struct {
 	supplycmd   chan SupplyCmd    // parse -> integrate
 	measure     chan Sample       // sample -> integrate
 	query       chan bool         // outputmgt -> integrate
-	status      chan Status       // integrate -> outputmgt
-	action      chan act.Action   // integrate -> actuator
+	status      chan t.Status     // integrate -> outputmgt
+	action      chan t.Status     // integrate -> actuator
 	ticksctl    chan t.Ticks      // parse -> ticksource
 	statusctl   chan bool         // parse -> outmgt
 	ticksext    chan t.Ticks      // tickext -> ticksource

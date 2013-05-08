@@ -1,12 +1,15 @@
 package act
 
-import "log"
+import (
+	"log"
+	"reg/t"
+)
 
 type actuator_common struct {
-	source chan Action
+	source chan t.Status
 }
 
-func (act *actuator_common) SetInput(src chan Action) {
+func (act *actuator_common) SetInput(src chan t.Status) {
 	act.source = src
 }
 

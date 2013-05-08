@@ -15,3 +15,13 @@ type TicksSteps struct {
 	Ticks Ticks
 	Steps Steps
 }
+
+type Status struct {
+	DomainLabel string
+	Ticks       Ticks
+	TicksDelta  Ticks
+	Steps       Steps
+	StepsDelta  Steps
+	Supply      []StuffSteps
+	Delta       []StuffSteps
+}
