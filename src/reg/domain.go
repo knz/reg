@@ -17,46 +17,60 @@ func MakeDomain(label string, ts ticks.Source, ss steps.Source, actuator act.Act
 
 		resources: make(map[int]Resource),
 
-		input:       make(chan string),
-		supplycmd:   make(chan SupplyCmd),
-		measure:     make(chan Sample),
-		query:       make(chan bool),
-		status:      make(chan t.Status),
-		action:      make(chan t.Status),
-		ticksctl:    make(chan t.Ticks),
-		statusctl:   make(chan bool),
-		tickssrc:    make(chan t.Ticks),
-		ticksext:    make(chan t.Ticks),
-		ticksin:     make(chan t.Ticks),
-		ticksper:    make(chan t.Ticks),
-		tickssteps:  make(chan t.TicksSteps),
-		tickssteps1: make(chan t.TicksSteps),
-		stepsper:    make(chan t.Steps),
-		out:         make(chan string),
-		outready:    make(chan bool),
-		inputdone:   make(chan bool)}
+		inputdone: make(chan bool)}
 
 	return &dom
 }
 
 func (d *Domain) Start(input io.Reader) {
-	d.TickSource.SetSource(d.ticksext)
-	d.StepSource.SetTicks(d.tickssrc)
-	d.StepSource.SetSource(d.tickssteps1)
-	d.Actuator.SetInput(d.action)
-	steps.TeeSteps(d.tickssteps1, d.tickssteps, d.stepsper)
-	ticks.TeeTicks(d.ticksin, d.ticksper, d.tickssrc)
+
+	tsource_mergeticks := make(chan t.Ticks)
+	d.TickSource.SetSource(tsource_mergeticks)
 	d.TickSource.Start()
-	d.StepSource.Start()
+
+	readlines_parse := make(chan string)
+	go readlines(input, readlines_parse, d.inputdone)
+
+	parse_mergeticks := make(chan t.Ticks)
+	parse_integrate := make(chan SupplyCmd)
+	parse_outmgt := make(chan bool)
+	go parse(readlines_parse, parse_mergeticks, parse_integrate, parse_outmgt)
+
+	integrate_outmgt := make(chan t.Status)
+	integrate_actuator := make(chan t.Status)
+	outmgt_integrate := make(chan bool)
+	sample_integrate := make(chan Sample)
+	go d.integrate(integrate_outmgt, integrate_actuator, parse_integrate, outmgt_integrate, sample_integrate)
+
+	d.Actuator.SetInput(integrate_actuator)
 	d.Actuator.Start()
-	go d.readlines(input)
-	go d.parse()
-	go d.integrate()
-	go d.ticksource()
-	go d.sample()
-	go d.throttle()
-	go d.outmgt()
-	go d.output()
+
+	mergeticks_teeticks := make(chan t.Ticks)
+	go d.mergeticks(tsource_mergeticks, parse_mergeticks, mergeticks_teeticks)
+
+	teeticks_ssource := make(chan t.Ticks)
+	teeticks_throttle := make(chan t.Ticks)
+	ticks.TeeTicks(teeticks_ssource, teeticks_throttle, mergeticks_teeticks)
+
+	d.StepSource.SetTicks(teeticks_ssource)
+	ssource_teesteps := make(chan t.TicksSteps)
+	d.StepSource.SetSource(ssource_teesteps)
+	d.StepSource.Start()
+
+	teesteps_sample := make(chan t.TicksSteps)
+	teesteps_throttle := make(chan t.Steps)
+	steps.TeeSteps(ssource_teesteps, teesteps_sample, teesteps_throttle)
+
+	go d.sample(teesteps_sample, sample_integrate)
+
+	//throttle_outmgt := make(chan bool)
+	go d.throttle(teeticks_throttle, teesteps_throttle, parse_outmgt)
+
+	outmgt_output := make(chan string)
+	output_outmgt := make(chan bool)
+	go d.outmgt(parse_outmgt, integrate_outmgt, outmgt_integrate, outmgt_output, output_outmgt)
+
+	go d.output(outmgt_output, output_outmgt)
 }
 
 func (d *Domain) Wait() {

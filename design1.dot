@@ -1,41 +1,47 @@
 digraph G {
    input [peripheries=2];
    output [peripheries=2];
-   protocol [peripheries=2];
 
-   subgraph cluster0 {
-      throttle [label="throttle (-R)"];
+//   subgraph cluster0 {
+      throttle [label="throttle"];
       outmgt [shape=box];
-      throttle -> outmgt [label="?\n(periodic)"];
-      label="report";
-   }
+      throttle -> outmgt [label="statusctl\n(bool)"];
+//      label="report";
+//   }
    integrate [shape=box];
 
-   subgraph cluster2 {
-   ticksource [peripheries=2];
+//   subgraph cluster2 {
+   ticks_source [peripheries=2];
    sample [peripheries=2];
-   granularity [shape=box];
-   ticksource -> granularity [label="t"];
-   granularity -> sample [label="t"];
-   label="measure";
-   }
+   teeticks;
+   ticks_source -> mergeticks  [label="ticksext\n(Ticks)"]
+   mergeticks -> teeticks [label="tickssrc\n(Ticks)"];
+   teeticks -> step_source [label="ticksin\n(Ticks)"];
+   step_source [peripheries=2];
+   step_source -> teesteps [label="tickssteps1\n(TicksSteps)"];
+   teesteps -> sample [label="tickssteps\n(TicksSteps)"];
+
+//   label="measure";
+//   }
 
    input -> parse;
-   parse -> integrate [label="+/-"];
-   parse -> outmgt [label="?\n(explicit)"];
-   parse -> ticksource [label="ticks\n(-t controlled)",style=dotted];
+   parse -> integrate [label="supplycmd\n(SupplyCmd)"];
+   parse -> outmgt [label="statusctl\n(bool)"];
+   parse -> mergeticks [label="ticksctl\n(Ticks)",style=dotted];
    
 
-   sample -> integrate [label="t,d,f(t)"];
-   integrate -> protocol [label="action"];
+   sample -> integrate [label="measure\n(Sample)"];
+   integrate -> actuator [label="action\n(Status)"];
 
-   ticksource -> throttle [label="t\n(-R :ticks)",style=dotted];
-   sample -> throttle [label="d\n(-R :steps)",style=dotted];
+   actuator [peripheries=2];
 
-   outmgt -> integrate [label="query"];
-   integrate -> outmgt [label="status"];
+   teeticks -> throttle [label="ticksper\n(Ticks)",style=dotted];
+   teesteps -> throttle [label="stepsper\n(Steps)",style=dotted];
 
-   output -> outmgt [label="ready"];
-   outmgt -> output [label="record"];
+   outmgt -> integrate [label="query\n(bool)"];
+   integrate -> outmgt [label="status\n(Status)"];
+
+   output -> outmgt [label="outready\n(bool)"];
+   outmgt -> output [label="out\n(string)"];
   
 }

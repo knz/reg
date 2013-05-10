@@ -2,7 +2,7 @@ package reg
 
 import "reg/t"
 
-func (d *Domain) ticksource() {
+func (d *Domain) mergeticks() {
 	d.tickssrc <- <-d.ticksext // forward init
 	for {
 		// forward deltas from either external tick source

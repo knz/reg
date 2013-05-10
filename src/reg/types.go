@@ -41,25 +41,5 @@ type Domain struct {
 	// Resource management
 	resources map[int]Resource
 
-	// Channels
-	input       chan string       // readlines -> parse
-	supplycmd   chan SupplyCmd    // parse -> integrate
-	measure     chan Sample       // sample -> integrate
-	query       chan bool         // outputmgt -> integrate
-	status      chan t.Status     // integrate -> outputmgt
-	action      chan t.Status     // integrate -> actuator
-	ticksctl    chan t.Ticks      // parse -> ticksource
-	statusctl   chan bool         // parse -> outmgt
-	ticksext    chan t.Ticks      // tickext -> ticksource
-	tickssrc    chan t.Ticks      // ticksource -> dup
-	ticksin     chan t.Ticks      // dup -> stepsource
-	ticksper    chan t.Ticks      // dup -> throttle
-	tickssteps1 chan t.TicksSteps // stepsource -> teesteps
-	tickssteps  chan t.TicksSteps // teesteps -> sample
-	stepsper    chan t.Steps      // teesteps -> throttle
-
-	out      chan string // outmgt -> output
-	outready chan bool   // output -> outmgt
-
 	inputdone chan bool // parse -> wait
 }

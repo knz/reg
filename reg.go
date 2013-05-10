@@ -80,7 +80,6 @@ func main() {
 	d.ThrottleType = reg.ThrottleTicks
 	d.ThrottleMinPeriod = 0.01
 	d.OutputFile = "/dev/stdout"
-	// d.StepsCmd = "while true; do read a || break; LANG=C ps -o cputime= -p 28403|tr ':.' '  '| LANG=C awk '{print $1*60+$2+$3/100. }'; done"
 	d.AddResource("time", "while true; do read a || break; LANG=C ps -o rss= -p 28403; done")
 	d.Start(os.Stdin)
 	d.Wait()
