@@ -3,28 +3,23 @@ package act
 import (
 	"fmt"
 	"io"
+	"reg/t"
 )
 
 type actuator_printer struct {
-	actuator_common
 	out io.Writer
 }
 
 func MakePrinterActuator(out io.Writer) Actuator {
-	return &actuator_printer{actuator_common{}, out}
+	return &actuator_printer{out}
 }
 
-func (act *actuator_printer) Start() {
-	go func() {
-		for action := range act.source {
-			s := fmt.Sprint(action.DomainLabel, " ",
-				action.Ticks, " ", action.TicksDelta, " ",
-				action.Steps, " ", action.StepsDelta)
-			for i, v := range action.Supply {
-				s += fmt.Sprint(" ", v, " ", action.Delta[i])
-			}
-			s += "\n"
-			act.out.Write([]byte(s))
-		}
-	}()
+func (act *actuator_printer) Start(src <-chan t.Status) {
+	for action := range src {
+		s := fmt.Sprint(action.DomainLabel, " ",
+			action.Ticks, action.TicksDelta,
+			action.Steps, action.StepsDelta,
+			action.Supply, action.Delta, "\n")
+		act.out.Write([]byte(s))
+	}
 }

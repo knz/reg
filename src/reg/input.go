@@ -30,9 +30,8 @@ func parse(input <-chan string, ticksctl chan<- t.Ticks, supplycmd chan<- Supply
 			v, _ := strconv.ParseFloat(cmdargs[1], 64)
 			ticksctl <- t.Ticks(v)
 		case "+":
-			b, _ := strconv.ParseInt(cmdargs[1], 0, 0)
-			v, _ := strconv.ParseFloat(cmdargs[2], 64)
-			supplycmd <- SupplyCmd{bin: int(b), supply: t.StuffSteps(v)}
+			v, _ := strconv.ParseFloat(cmdargs[1], 64)
+			supplycmd <- SupplyCmd{supply: t.StuffSteps(v)}
 		case "?":
 			statusctl <- true
 		}

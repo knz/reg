@@ -1,24 +1,27 @@
 package reg
 
-import "math"
+import (
+	"math"
+	"reg/t"
+)
 
-func (d *Domain) throttle() {
+func (d *Domain) throttle(ticksper <-chan t.Ticks, stepsper <-chan t.Steps, statusctl chan<- bool) {
 	val := float64(0)
 	for {
 		select {
-		case ticks := <-d.ticksper:
+		case ticks := <-ticksper:
 			if d.ThrottleType != ThrottleTicks {
 				continue
 			}
 			val += float64(ticks)
-		case steps := <-d.stepsper:
+		case steps := <-stepsper:
 			if d.ThrottleType != ThrottleSteps {
 				continue
 			}
 			val += float64(steps)
 		}
 		if val >= d.ThrottleMinPeriod {
-			d.statusctl <- true
+			statusctl <- true
 			val = math.Mod(val, d.ThrottleMinPeriod)
 		}
 	}

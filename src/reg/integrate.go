@@ -4,17 +4,9 @@ import (
 	"reg/t"
 )
 
-func make_status(label string, nres int, ticks *t.Ticks, dticks *t.Ticks,
+func make_status(label string, ticks *t.Ticks, dticks *t.Ticks,
 	steps *t.Steps, dsteps *t.Steps,
-	psupply []t.StuffSteps, supply []t.StuffSteps) t.Status {
-
-	v := make([]t.StuffSteps, nres)
-	copy(v, supply)
-	d := make([]t.StuffSteps, nres)
-	for i, x := range v {
-		d[i] = x - psupply[i]
-	}
-	copy(psupply, supply)
+	psupply *t.StuffSteps, supply *t.StuffSteps) t.Status {
 
 	*ticks += *dticks
 	*steps += *dsteps
@@ -25,57 +17,55 @@ func make_status(label string, nres int, ticks *t.Ticks, dticks *t.Ticks,
 		TicksDelta:  *dticks,
 		Steps:       *steps,
 		StepsDelta:  *dsteps,
-		Supply:      v,
-		Delta:       d,
+		Supply:      *supply,
+		Delta:       *supply - *psupply,
 	}
+	*psupply = *supply
 	*dticks = t.Ticks(0)
 	*dsteps = t.Steps(0)
 
 	return st
 }
 
-func (d *Domain) integrate() {
+func (d *Domain) integrate(
+	status chan<- t.Status,
+	action chan<- t.Status,
+	supplycmd <-chan SupplyCmd,
+	query <-chan bool,
+	measure <-chan t.Sample) {
 
 	dropfirst := true
-	nres := len(d.resources)
-	supply := make([]t.StuffSteps, nres)
+	var supply t.StuffSteps
 
 	var qticks, aticks, qdticks, adticks t.Ticks
 	var qsteps, asteps, qdsteps, adsteps t.Steps
-	qpsupply := make([]t.StuffSteps, nres)
-	apsupply := make([]t.StuffSteps, nres)
+	var qpsupply, apsupply t.StuffSteps
 
 	for {
 		select {
-		case m := <-d.measure:
+		case m := <-measure:
 			if dropfirst {
 				dropfirst = false
 				continue
 			}
-			for i := range supply {
-				delta := t.StuffSteps(float64(m.steps) * float64(m.usage[i]))
-				supply[i] -= delta
-			}
-			qdticks += m.ticks
-			adticks += m.ticks
-			qdsteps += m.steps
-			adsteps += m.steps
 
-		case s := <-d.supplycmd:
-			supply[s.bin] += s.supply
+			delta := t.StuffSteps(float64(m.Steps) * float64(m.Usage))
+			supply -= delta
 
-		case <-d.query:
-			d.status <- make_status(d.Label, nres, &qticks, &qdticks, &qsteps, &qdsteps, qpsupply, supply)
+			qdticks += m.Ticks
+			adticks += m.Ticks
+			qdsteps += m.Steps
+			adsteps += m.Steps
+
+		case s := <-supplycmd:
+			supply += s.supply
+
+		case <-query:
+			status <- make_status(d.Label, &qticks, &qdticks, &qsteps, &qdsteps, &qpsupply, &supply)
 		}
 
-		trigger := false
-		for i, v := range supply {
-			if v < 0 || (v >= 0 && apsupply[i] < 0) {
-				trigger = true
-			}
-		}
-		if trigger {
-			d.action <- make_status(d.Label, nres, &aticks, &adticks, &asteps, &adsteps, apsupply, supply)
+		if supply < 0 || (supply >= 0 && apsupply < 0) {
+			action <- make_status(d.Label, &aticks, &adticks, &asteps, &adsteps, &apsupply, &supply)
 		}
 
 	}

@@ -3,8 +3,7 @@ package steps
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/exec"
+	"reg/cmd"
 	"reg/t"
 	"strconv"
 )
@@ -15,16 +14,20 @@ type stepsource_cmd struct {
 }
 
 type stepsource_cmdone struct {
-	stepsource_common
 	stepsource_cmd
 }
 
 func MakeCommandSource(cmd string, sourcetype int) Source {
-	return &stepsource_cmdone{stepsource_common{}, stepsource_cmd{cmd: cmd, sourcetype: sourcetype}}
+	return &stepsource_cmdone{stepsource_cmd{cmd: cmd, sourcetype: sourcetype}}
 }
 
-func stepsource_cmd_process(ticks chan t.Ticks, src chan t.TicksSteps,
-	sourcetype int, interact func(ticks t.Ticks) t.Steps) {
+func stepsource_cmd_process(ticks <-chan t.Ticks, src chan<- t.TicksSteps,
+	sourcetype int, cmdc cmd.Cmd) {
+
+	cmdin := make(chan []string)
+	cmdout := make(chan string)
+
+	go cmdc.Start(cmdin, cmdout)
 
 	if sourcetype == t.SRC_DELTAS_ONLY {
 		src <- t.TicksSteps{Ticks: <-ticks, Steps: 0}
@@ -33,7 +36,16 @@ func stepsource_cmd_process(ticks chan t.Ticks, src chan t.TicksSteps,
 	var lastval t.Steps
 	for {
 		tval := <-ticks
-		sval := interact(tval)
+
+		args := make([]string, 1)
+		args[0] = fmt.Sprint(tval)
+		cmdin <- args
+		output := <-cmdout
+		v, err := strconv.ParseFloat(output, 64)
+		if err != nil {
+			log.Fatal(err)
+		}
+		sval := t.Steps(v)
 
 		if sourcetype == t.SRC_MONOTONIC {
 			tmp := sval - lastval
@@ -45,24 +57,6 @@ func stepsource_cmd_process(ticks chan t.Ticks, src chan t.TicksSteps,
 	}
 }
 
-func (ss *stepsource_cmdone) Start() {
-	ss.Check()
-
-	shell := os.Getenv("SHELL")
-	if shell == "" {
-		shell = "sh"
-	}
-
-	go stepsource_cmd_process(ss.ticks, ss.source, ss.sourcetype, func(ticks t.Ticks) t.Steps {
-		cmdc := exec.Command(shell, "-c", ss.cmd, fmt.Sprint(ticks))
-		output, err := cmdc.Output()
-		if err != nil {
-			log.Fatal(err)
-		}
-		v, err := strconv.ParseFloat(string(output[:len(output)-1]), 64)
-		if err != nil {
-			log.Fatal(err)
-		}
-		return t.Steps(v)
-	})
+func (ss *stepsource_cmdone) Start(src <-chan t.Ticks, prod chan<- t.TicksSteps) {
+	stepsource_cmd_process(src, prod, ss.sourcetype, cmd.MakeOneShotCommand(ss.cmd))
 }

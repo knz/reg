@@ -22,6 +22,12 @@ type Status struct {
 	TicksDelta  Ticks
 	Steps       Steps
 	StepsDelta  Steps
-	Supply      []StuffSteps
-	Delta       []StuffSteps
+	Supply      StuffSteps
+	Delta       StuffSteps
+}
+
+type Sample struct {
+	Ticks Ticks
+	Steps Steps
+	Usage Stuff
 }

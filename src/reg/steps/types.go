@@ -3,7 +3,5 @@ package steps
 import "reg/t"
 
 type Source interface {
-	Start()
-	SetTicks(src chan t.Ticks)
-	SetSource(src chan t.TicksSteps)
+	Start(src <-chan t.Ticks, prod chan<- t.TicksSteps)
 }

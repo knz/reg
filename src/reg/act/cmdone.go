@@ -2,9 +2,8 @@ package act
 
 import (
 	"fmt"
-	"log"
-	"os"
-	"os/exec"
+	"reg/cmd"
+	"reg/t"
 )
 
 type actuator_cmd struct {
@@ -12,41 +11,30 @@ type actuator_cmd struct {
 }
 
 type actuator_cmdone struct {
-	actuator_common
 	actuator_cmd
 }
 
 func MakeCommandActuator(cmd string) Actuator {
-	return &actuator_cmdone{actuator_common{}, actuator_cmd{cmd: cmd}}
+	return &actuator_cmdone{actuator_cmd{cmd: cmd}}
 }
 
-func (act *actuator_cmdone) Start() {
-	act.Check()
+func actuator_cmd_process(src <-chan t.Status, cmdc cmd.Cmd) {
+	cmdin := make(chan []string)
+	go cmdc.Start(cmdin, nil)
 
-	shell := os.Getenv("SHELL")
-	if shell == "" {
-		shell = "sh"
+	for a := range src {
+		args := make([]string, 7)
+		args[0] = a.DomainLabel
+		args[1] = fmt.Sprint(a.Ticks)
+		args[2] = fmt.Sprint(a.TicksDelta)
+		args[3] = fmt.Sprint(a.Steps)
+		args[4] = fmt.Sprint(a.StepsDelta)
+		args[5] = fmt.Sprint(a.Supply)
+		args[6] = fmt.Sprint(a.Delta)
+		cmdin <- args
 	}
+}
 
-	go func() {
-		for a := range act.source {
-			args := make([]string, 7+2*len(a.Supply))
-			args[0] = "-c"
-			args[1] = act.cmd
-			args[2] = a.DomainLabel
-			args[3] = fmt.Sprint(a.Ticks)
-			args[4] = fmt.Sprint(a.TicksDelta)
-			args[5] = fmt.Sprint(a.Steps)
-			args[6] = fmt.Sprint(a.StepsDelta)
-			for i, s := range a.Supply {
-				args[7+2*i] = fmt.Sprint(s)
-				args[7+2*i+1] = fmt.Sprint(a.Delta[i])
-			}
-			cmdc := exec.Command(shell, args...)
-			err := cmdc.Run()
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	}()
+func (act *actuator_cmdone) Start(src <-chan t.Status) {
+	actuator_cmd_process(src, cmd.MakeOneShotCommand(act.cmd))
 }
