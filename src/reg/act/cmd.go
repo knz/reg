@@ -7,20 +7,16 @@ import (
 )
 
 type actuator_cmd struct {
-	cmd string
+	cmd cmd.Cmd
 }
 
-type actuator_cmdone struct {
-	actuator_cmd
+func MakeCommandActuator(cmd cmd.Cmd) Actuator {
+	return &actuator_cmd{cmd}
 }
 
-func MakeCommandActuator(cmd string) Actuator {
-	return &actuator_cmdone{actuator_cmd{cmd: cmd}}
-}
-
-func actuator_cmd_process(src <-chan t.Status, cmdc cmd.Cmd) {
+func (act *actuator_cmd) Start(src <-chan t.Status) {
 	cmdin := make(chan []string)
-	go cmdc.Start(cmdin, nil)
+	go act.cmd.Start(cmdin, nil)
 
 	for a := range src {
 		args := make([]string, 7)
@@ -33,8 +29,4 @@ func actuator_cmd_process(src <-chan t.Status, cmdc cmd.Cmd) {
 		args[6] = fmt.Sprint(a.Delta)
 		cmdin <- args
 	}
-}
-
-func (act *actuator_cmdone) Start(src <-chan t.Status) {
-	actuator_cmd_process(src, cmd.MakeOneShotCommand(act.cmd))
 }

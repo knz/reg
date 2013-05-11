@@ -3,18 +3,20 @@ package reg
 import (
 	"io"
 	"reg/act"
-	"reg/cmd"
+	"reg/sample"
 	"reg/steps"
 	"reg/t"
 	"reg/ticks"
 )
 
-func MakeDomain(label string, ts ticks.Source, ss steps.Source, actuator act.Actuator) *Domain {
+func MakeDomain(label string, ts ticks.Source, ss steps.Source, actuator act.Actuator,
+	sampler sample.Sampler) *Domain {
 	dom := Domain{
 		Label:      label,
 		TickSource: ts,
 		StepSource: ss,
 		Actuator:   actuator,
+		Sampler:    sampler,
 
 		inputdone: make(chan bool)}
 
@@ -56,7 +58,7 @@ func (d *Domain) Start(input io.Reader) {
 	teesteps_throttle := make(chan t.Steps)
 	go steps.TeeSteps(ssource_teesteps, teesteps_sample, teesteps_throttle)
 
-	go d.sample(teesteps_sample, sample_integrate)
+	go d.Sampler.Start(teesteps_sample, sample_integrate)
 
 	//throttle_outmgt := make(chan bool)
 	go d.throttle(teeticks_throttle, teesteps_throttle, parse_outmgt)

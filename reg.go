@@ -5,6 +5,8 @@ import (
 	"os"
 	"reg"
 	"reg/act"
+	"reg/cmd"
+	"reg/sample"
 	"reg/steps"
 	"reg/t"
 	"reg/ticks"
@@ -60,9 +62,9 @@ func main() {
 				}
 				switch os.Args[i+1] {
 				case "one":
-					ss = steps.MakeCommandSource(os.Args[i+3], st)
+					ss = steps.MakeCommandSource(cmd.MakeOneShotCommand(os.Args[i+3]), st)
 				default:
-					ss = steps.MakeInteractiveCommandSource(os.Args[i+3], st)
+					ss = steps.MakeCommandSource(cmd.MakeInteractiveCommand(os.Args[i+3]), st)
 				}
 				i += 3
 			}
@@ -75,12 +77,13 @@ func main() {
 	//	a := act.MakePrinterActuator(os.Stderr)
 	// a := act.MakeDummyActuator()
 	// a := act.MakeCommandActuator("echo ACT $0 $@ >/dev/tty")
-	a := act.MakeInteractiveCommandActuator("while true; do read a; echo ACT $a >/dev/tty; done")
-	d := reg.MakeDomain("default", ts, ss, a)
+	a := act.MakeCommandActuator(cmd.MakeInteractiveCommand("while true; do read a || break; echo ACT $a >/dev/tty; done"))
+
+	s := sample.MakeCommandSampler(cmd.MakeOneShotCommand("LANG=C ps -o rss= -p 76177"))
+	d := reg.MakeDomain("default", ts, ss, a, s)
 	d.ThrottleType = reg.ThrottleTicks
 	d.ThrottleMinPeriod = 0.01
 	d.OutputFile = "/dev/stdout"
-	d.AddResource("time", "while true; do read a || break; LANG=C ps -o rss= -p 28403; done")
 	d.Start(os.Stdin)
 	d.Wait()
 }
