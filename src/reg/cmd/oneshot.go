@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"log"
 	"os"
 	"os/exec"
 )
+
+import . "assert"
 
 type cmd_oneshot struct {
 	cmd string
@@ -21,20 +22,18 @@ func (c *cmd_oneshot) Start(in <-chan []string, out chan<- string) {
 		shell = "sh"
 	}
 
-	for input := range in {
-
+	for {
 		cmdc := exec.Command(shell, "-c", c.cmd)
-		cmdc.Args = append(cmdc.Args, input...)
+		if in != nil {
+			input := <-in
+			cmdc.Args = append(cmdc.Args, input...)
+		}
 		if out == nil {
 			err := cmdc.Run()
-			if err != nil {
-				log.Fatal(err)
-			}
+			CheckErrIsNil(err, cmdc.Args, ":Run()")
 		} else {
 			output, err := cmdc.Output()
-			if err != nil {
-				log.Fatal(err)
-			}
+			CheckErrIsNil(err, cmdc.Args, ":Output()")
 			out <- string(output[:len(output)-1])
 		}
 	}

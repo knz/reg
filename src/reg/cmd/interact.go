@@ -1,8 +1,9 @@
 package cmd
 
+import . "assert"
 import (
 	"bufio"
-	"log"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -23,35 +24,32 @@ func (c *cmd_interactive) Start(in <-chan []string, out chan<- string) {
 	}
 	cmdc := exec.Command(shell, "-c", c.cmd)
 
-	cmdin, err := cmdc.StdinPipe()
-	if err != nil {
-		log.Fatal(err)
+	var cmdin io.WriteCloser
+	if in != nil {
+		cmdi, err := cmdc.StdinPipe()
+		CheckErrIsNil(err, cmdc.Args, ":StdinPipe()")
+		cmdin = cmdi
 	}
 
 	var cmdout *bufio.Reader
 	if out != nil {
 		cmdo, err := cmdc.StdoutPipe()
-		if err != nil {
-			log.Fatal(err)
-		}
+		CheckErrIsNil(err, cmdc.Args, ":StdoutPipe()")
 		cmdout = bufio.NewReader(cmdo)
 	}
 
-	err = cmdc.Start()
-	if err != nil {
-		log.Fatal(err)
-	}
+	err := cmdc.Start()
+	CheckErrIsNil(err, cmdc.Args, ":Start()")
 
-	for input := range in {
-		_, err := cmdin.Write([]byte(strings.Join(input, " ") + "\n"))
-		if err != nil {
-			log.Fatal(err)
+	for {
+		if in != nil {
+			input := <-in
+			_, err := cmdin.Write([]byte(strings.Join(input, " ") + "\n"))
+			CheckErrIsNil(err, cmdc.Args, ":Write()")
 		}
 		if out != nil {
 			s, err := cmdout.ReadString('\n')
-			if err != nil {
-				log.Fatal(err)
-			}
+			CheckErrIsNil(err, cmdc.Args, ":ReadString()")
 			out <- s[:len(s)-1]
 		}
 	}

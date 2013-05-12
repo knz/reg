@@ -36,9 +36,8 @@ func (ss *stepsource_cmd) Start(src <-chan t.Ticks, prod chan<- t.TicksSteps) {
 		cmdin <- args
 		output := <-cmdout
 		v, err := strconv.ParseFloat(output, 64)
-		if err != nil {
-			log.Fatal(err)
-		}
+		CheckErrIsNil(err, "parsing steps")
+
 		sval := t.Steps(v)
 
 		if ss.sourcetype == t.SRC_MONOTONIC {

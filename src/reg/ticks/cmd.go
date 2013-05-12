@@ -1,35 +1,26 @@
 package ticks
 
 import (
-	"bufio"
-	"log"
-	"os"
-	"os/exec"
+	"reg/cmd"
 	"reg/t"
 	"strconv"
 )
 
+import . "assert"
+
 type ticksource_cmd struct {
-	cmd        string
+	cmd        cmd.Cmd
 	sourcetype int
+}
+
+func MakeCommandSource(cmd cmd.Cmd, sourcetype int) Source {
+	return &ticksource_cmd{cmd, sourcetype}
 }
 
 func (ts *ticksource_cmd) Start(prod chan<- t.Ticks) {
 
-	shell := os.Getenv("SHELL")
-	if shell == "" {
-		shell = "sh"
-	}
-	cmdc := exec.Command(shell, "-c", ts.cmd)
-	cmdout, err := cmdc.StdoutPipe()
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = cmdc.Start()
-	if err != nil {
-		log.Fatal(err)
-	}
-	reader := bufio.NewReader(cmdout)
+	cmdout := make(chan string)
+	go ts.cmd.Start(nil, cmdout)
 
 	lastval := t.Ticks(0)
 	if ts.sourcetype == t.SRC_DELTAS_ONLY {
@@ -38,11 +29,11 @@ func (ts *ticksource_cmd) Start(prod chan<- t.Ticks) {
 	}
 
 	for {
-		tickstr, _ := reader.ReadString('\n')
-		v, err := strconv.ParseFloat(tickstr[:len(tickstr)-1], 64)
-		if err != nil {
-			log.Fatal(err)
-		}
+		tickstr := <-cmdout
+
+		v, err := strconv.ParseFloat(tickstr, 64)
+		CheckErrIsNil(err, "parsing ticks")
+
 		val := t.Ticks(v)
 
 		if ts.sourcetype == t.SRC_MONOTONIC {
@@ -53,8 +44,4 @@ func (ts *ticksource_cmd) Start(prod chan<- t.Ticks) {
 
 		prod <- val
 	}
-}
-
-func MakeCommandSource(cmd string, sourcetype int) Source {
-	return &ticksource_cmd{cmd: cmd, sourcetype: sourcetype}
 }

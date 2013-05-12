@@ -1,7 +1,7 @@
 package main
 
+import . "assert"
 import (
-	"log"
 	"os"
 	"reg"
 	"reg/act"
@@ -27,9 +27,7 @@ func main() {
 				i += 1
 			case "time":
 				d, err := time.ParseDuration(os.Args[i+2])
-				if err != nil {
-					log.Fatal(err)
-				}
+				CheckErrIsNil(err, "parsing command-line argument")
 				ts = ticks.MakeTimerSource(d)
 				i += 2
 			default:
@@ -42,7 +40,12 @@ func main() {
 				default:
 					st = t.SRC_INIT_THEN_DELTAS
 				}
-				ts = ticks.MakeCommandSource(os.Args[i+3], st)
+				switch os.Args[i+1] {
+				case "one":
+					ts = ticks.MakeCommandSource(cmd.MakeOneShotCommand(os.Args[i+3]), st)
+				default:
+					ts = ticks.MakeCommandSource(cmd.MakeInteractiveCommand(os.Args[i+3]), st)
+				}
 				i += 3
 			}
 		case "steps":
@@ -104,6 +107,6 @@ func main() {
 
 	s := sample.MakeCommandSampler(cmd.MakeOneShotCommand("LANG=C ps -o rss= -p 99298"))
 	d := reg.MakeDomain(ts, ss, a, s)
-	d.Start(os.Stdin, os.Stdout, reg.OUTPUT_THROTTLE_TICKS, 1, false)
+	d.Start(os.Stdin, os.Stdout, reg.OUTPUT_FLOOD, 1, true)
 	d.Wait()
 }

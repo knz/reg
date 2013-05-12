@@ -1,8 +1,8 @@
 package reg
 
+import . "assert"
 import (
 	"fmt"
-	"log"
 	"reg/t"
 	"syscall"
 )
@@ -41,14 +41,11 @@ func output(fd uintptr, out <-chan string, outready chan<- bool) {
 	for {
 		set.Bits[fd/64] = int32(fd) % 64
 		err := syscall.Select(int(fd+1), nil, &set, nil, nil)
-		if err != nil {
-			log.Fatal("Select", err)
-		}
+		CheckErrIsNil(err, "Select() for write on fd ", fd)
+
 		outready <- true
 		cmd := <-out
 		_, err = syscall.Write(int(fd), []byte(cmd))
-		if err != nil {
-			log.Fatal("Write", err)
-		}
+		CheckErrIsNil(err, "Write() on fd ", fd)
 	}
 }
