@@ -1,7 +1,7 @@
 package reg
 
 import (
-	"io"
+	"os"
 	"reg/act"
 	"reg/sample"
 	"reg/steps"
@@ -9,10 +9,11 @@ import (
 	"reg/ticks"
 )
 
-func MakeDomain(label string, ts ticks.Source, ss steps.Source, actuator act.Actuator,
+func MakeDomain(ts ticks.Source,
+	ss steps.Source,
+	actuator act.Actuator,
 	sampler sample.Sampler) *Domain {
 	dom := Domain{
-		Label:      label,
 		TickSource: ts,
 		StepSource: ss,
 		Actuator:   actuator,
@@ -23,51 +24,57 @@ func MakeDomain(label string, ts ticks.Source, ss steps.Source, actuator act.Act
 	return &dom
 }
 
-func (d *Domain) Start(input io.Reader) {
+func (d *Domain) Start(inputfile *os.File, outputfile *os.File,
+	outputpertype int, ThrottleMinPeriod float64, dropfirst bool) {
 
 	tsource_mergeticks := make(chan t.Ticks)
-	go d.TickSource.Start(tsource_mergeticks)
-
 	readlines_parse := make(chan string)
-	go readlines(input, readlines_parse, d.inputdone)
-
 	parse_mergeticks := make(chan t.Ticks)
 	parse_integrate := make(chan SupplyCmd)
 	parse_outmgt := make(chan bool)
-	go parse(readlines_parse, parse_mergeticks, parse_integrate, parse_outmgt)
-
 	integrate_outmgt := make(chan t.Status)
 	integrate_actuator := make(chan t.Status)
 	outmgt_integrate := make(chan bool)
 	sample_integrate := make(chan t.Sample)
-	go d.integrate(integrate_outmgt, integrate_actuator, parse_integrate, outmgt_integrate, sample_integrate)
+	outmgt_output := make(chan string)
+	output_outmgt := make(chan bool)
+
+	mergeticksOutput := make(chan t.Ticks)
+	ssourceInput := mergeticksOutput
+	ssourceOutput := make(chan t.TicksSteps)
+	sampleInput := ssourceOutput
+	flood := false
+
+	switch outputpertype {
+	case OUTPUT_FLOOD:
+		flood = true
+	case OUTPUT_THROTTLE_STEPS:
+		teesteps_throttle := make(chan float64)
+		sampleInput = make(chan t.TicksSteps)
+		go steps.TeeSteps(ssourceOutput, sampleInput, teesteps_throttle)
+		go throttle(ThrottleMinPeriod, teesteps_throttle, parse_outmgt)
+	case OUTPUT_THROTTLE_TICKS:
+		teeticks_throttle := make(chan float64)
+		ssourceInput = make(chan t.Ticks)
+		go ticks.TeeTicks(ssourceInput, teeticks_throttle, mergeticksOutput)
+		go throttle(ThrottleMinPeriod, teeticks_throttle, parse_outmgt)
+	}
+
+	go readlines(inputfile, readlines_parse, d.inputdone)
+	go parse(readlines_parse, parse_mergeticks, parse_integrate, parse_outmgt)
+
+	go d.TickSource.Start(tsource_mergeticks)
+	go mergeticks(tsource_mergeticks, parse_mergeticks, mergeticksOutput)
+	go d.StepSource.Start(ssourceInput, ssourceOutput)
+	go d.Sampler.Start(sampleInput, sample_integrate)
+
+	go d.integrate(dropfirst, integrate_outmgt, integrate_actuator, parse_integrate, outmgt_integrate, sample_integrate)
 
 	go d.Actuator.Start(integrate_actuator)
 
-	mergeticks_teeticks := make(chan t.Ticks)
-	go mergeticks(tsource_mergeticks, parse_mergeticks, mergeticks_teeticks)
+	go outmgt(flood, parse_outmgt, integrate_outmgt, outmgt_integrate, outmgt_output, output_outmgt)
+	go output(outputfile.Fd(), outmgt_output, output_outmgt)
 
-	teeticks_ssource := make(chan t.Ticks)
-	teeticks_throttle := make(chan t.Ticks)
-	go ticks.TeeTicks(teeticks_ssource, teeticks_throttle, mergeticks_teeticks)
-
-	ssource_teesteps := make(chan t.TicksSteps)
-	go d.StepSource.Start(teeticks_ssource, ssource_teesteps)
-
-	teesteps_sample := make(chan t.TicksSteps)
-	teesteps_throttle := make(chan t.Steps)
-	go steps.TeeSteps(ssource_teesteps, teesteps_sample, teesteps_throttle)
-
-	go d.Sampler.Start(teesteps_sample, sample_integrate)
-
-	//throttle_outmgt := make(chan bool)
-	go d.throttle(teeticks_throttle, teesteps_throttle, parse_outmgt)
-
-	outmgt_output := make(chan string)
-	output_outmgt := make(chan bool)
-	go d.outmgt(parse_outmgt, integrate_outmgt, outmgt_integrate, outmgt_output, output_outmgt)
-
-	go d.output(outmgt_output, output_outmgt)
 }
 
 func (d *Domain) Wait() {

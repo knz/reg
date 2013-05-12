@@ -7,7 +7,9 @@ import (
 	"syscall"
 )
 
-func (d *Domain) outmgt(statusctl <-chan bool, status <-chan t.Status, query chan<- bool, out chan<- string, outready <-chan bool) {
+func outmgt(flood bool, statusctl <-chan bool,
+	status <-chan t.Status, query chan<- bool,
+	out chan<- string, outready <-chan bool) {
 
 	doit := false
 
@@ -18,7 +20,7 @@ func (d *Domain) outmgt(statusctl <-chan bool, status <-chan t.Status, query cha
 			doit = true
 			continue
 		}
-		if !doit {
+		if !flood && !doit {
 			<-statusctl
 		}
 		doit = false
@@ -26,26 +28,27 @@ func (d *Domain) outmgt(statusctl <-chan bool, status <-chan t.Status, query cha
 		query <- true
 		st := <-status
 
-		msg := fmt.Sprint(d.Label, " ",
-			st.Ticks, st.TicksDelta,
+		msg := fmt.Sprint(st.Ticks, st.TicksDelta,
 			st.Steps, st.StepsDelta,
 			st.Supply, st.Delta, "\n")
 		out <- msg
 	}
 }
 
-func (d *Domain) output(out <-chan string, outready chan<- bool) {
-	fd, err := syscall.Open(d.OutputFile, syscall.O_WRONLY|syscall.O_CREAT|syscall.O_TRUNC, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
+func output(fd uintptr, out <-chan string, outready chan<- bool) {
 
 	set := syscall.FdSet{}
 	for {
 		set.Bits[fd/64] = int32(fd) % 64
-		syscall.Select(fd+1, nil, &set, nil, nil)
+		err := syscall.Select(int(fd+1), nil, &set, nil, nil)
+		if err != nil {
+			log.Fatal("Select", err)
+		}
 		outready <- true
 		cmd := <-out
-		syscall.Write(fd, []byte(cmd))
+		_, err = syscall.Write(int(fd), []byte(cmd))
+		if err != nil {
+			log.Fatal("Write", err)
+		}
 	}
 }

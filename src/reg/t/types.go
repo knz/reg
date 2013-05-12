@@ -17,13 +17,12 @@ type TicksSteps struct {
 }
 
 type Status struct {
-	DomainLabel string
-	Ticks       Ticks
-	TicksDelta  Ticks
-	Steps       Steps
-	StepsDelta  Steps
-	Supply      StuffSteps
-	Delta       StuffSteps
+	Ticks      Ticks
+	TicksDelta Ticks
+	Steps      Steps
+	StepsDelta Steps
+	Supply     StuffSteps
+	Delta      StuffSteps
 }
 
 type Sample struct {

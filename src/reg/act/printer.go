@@ -16,8 +16,7 @@ func MakePrinterActuator(out io.Writer) Actuator {
 
 func (act *actuator_printer) Start(src <-chan t.Status) {
 	for action := range src {
-		s := fmt.Sprint(action.DomainLabel, " ",
-			action.Ticks, action.TicksDelta,
+		s := fmt.Sprint(action.Ticks, action.TicksDelta,
 			action.Steps, action.StepsDelta,
 			action.Supply, action.Delta, "\n")
 		act.out.Write([]byte(s))

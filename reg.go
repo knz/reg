@@ -74,16 +74,36 @@ func main() {
 
 	}
 
+	/*
+		var fin, fout os.File
+		var err Error
+
+		if inputfile == nil || inputfile == "-" {
+			fin = os.Stdin
+		} else {
+			fin, err = os.Open(inputfile)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		if outputfile == nil || outputfile == "-" {
+			fout = os.Stdout
+		} else {
+			fout, err := os.OpenFile(outputfile, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0666)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+	*/
 	//	a := act.MakePrinterActuator(os.Stderr)
 	// a := act.MakeDummyActuator()
 	// a := act.MakeCommandActuator("echo ACT $0 $@ >/dev/tty")
 	a := act.MakeCommandActuator(cmd.MakeInteractiveCommand("while true; do read a || break; echo ACT $a >/dev/tty; done"))
 
-	s := sample.MakeCommandSampler(cmd.MakeOneShotCommand("LANG=C ps -o rss= -p 76177"))
-	d := reg.MakeDomain("default", ts, ss, a, s)
-	d.ThrottleType = reg.ThrottleTicks
-	d.ThrottleMinPeriod = 0.01
-	d.OutputFile = "/dev/stdout"
-	d.Start(os.Stdin)
+	s := sample.MakeCommandSampler(cmd.MakeOneShotCommand("LANG=C ps -o rss= -p 99298"))
+	d := reg.MakeDomain(ts, ss, a, s)
+	d.Start(os.Stdin, os.Stdout, reg.OUTPUT_THROTTLE_TICKS, 1, false)
 	d.Wait()
 }

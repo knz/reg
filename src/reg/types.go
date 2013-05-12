@@ -13,20 +13,17 @@ type SupplyCmd struct {
 }
 
 const (
-	ThrottleSteps = iota
-	ThrottleTicks
+	OUTPUT_EXPLICIT_ONLY = iota
+	OUTPUT_FLOOD
+	OUTPUT_THROTTLE_STEPS
+	OUTPUT_THROTTLE_TICKS
 )
 
 type Domain struct {
-	Label      string
 	TickSource ticks.Source
 	StepSource steps.Source
 	Actuator   act.Actuator
 	Sampler    sample.Sampler
-	OutputFile string
-
-	ThrottleType      int
-	ThrottleMinPeriod float64
 
 	inputdone chan bool // parse -> wait
 }
