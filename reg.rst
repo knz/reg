@@ -2,9 +2,9 @@
  reg
 =====
 
--------------------
- Process REGulator
--------------------
+------------------
+ System REGulator
+------------------
 
 :Date: May 2013
 :Manual section: 1
@@ -38,37 +38,43 @@ See `RESOURCE MANAGEMENT`_ below.
 Options
 -------
 
-``-i <FILE>``
+``-i``, ``--input <FILE>``
     Use ``<FILE>`` as input stream. By default, the standard input is
     used. See `INPUT LANGUAGE`_ below.
 
-``-o <FILE>``
+``-o``, ``--output <FILE>``
     Use ``<FILE>`` as output stream. By default, the standard output is used.
     See `OUTPUT FORMAT`_ below.
 
-``-t <SPEC>``
+``-t``, ``--ticks <SPEC>``
     Use ``<SPEC>`` as a time discretization function. See `TIME
     DISCRETIZATION`_ below.
 
-``-g <N>``
+``-g``, ``--granularity <N>``
     Force the granularity of the tick generator to ``<N>``. See
     `GRANULARITY`_ below.
 
-``-s <SPEC>``
+``-s``, ``--steps <SPEC>``
     Use ``<SPEC>`` as a progress indicator function. See `PROGRESS
     INDICATOR`_ below.
 
-``-m <SPEC>``
+``-m``, ``--monitor <SPEC>``
     Use ``<SPEC>`` as monitor for resource usage.
     See `MONITOR SPECIFICATION`_ below.
 
-``-a <SPEC>``
+``-a``, ``--actuator <SPEC>``
     Use ``<SPEC>`` as actuator to regulate the system. See
     `ACTUATION`_ below.
 
-``-p <SPEC>``
+``-p``, ``--periodic-output <SPEC>``
     Configure how often status records are generated on the output stream. See
     `OUTPUT RATE`_ below.
+
+``-h``, ``--help``
+    Display usage information and exit.
+
+``--version``
+    Output version information and exit.
 
 RESOURCE MANAGEMENT
 ===================
@@ -472,3 +478,13 @@ exhausted (end-of-file is encounted while reading).
 
 Errors, signals, unknown situations, etc. are reported with other exit
 codes.
+
+AUTHOR
+======
+
+Writen by Raphael 'kena' Poss.
+
+REPORTING BUGS
+==============
+
+Report bugs to: https://github.com/knz/reg/issues

@@ -1,8 +1,13 @@
+// Copyright 2013 Raphael 'kena' Poss.  All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package main
 
+import "code.google.com/p/getopt"
 import . "assert"
 import (
-	"getopt"
+	"fmt"
 	"os"
 	"reg"
 	"reg/act"
@@ -59,9 +64,23 @@ func main() {
 	aspec := getopt.StringLong("actuator", 'a', "", "Set actuator (triggered upon supply exhaustion)", "SPEC")
 	gran := getopt.StringLong("granularity", 'g', "0", "Force tick granularity (default 0, disabled)", "N")
 	thr := getopt.StringLong("periodic-output", 'p', "none", "Configure periodic output (default none)", "PER")
+	help := getopt.BoolLong("help", 'h', "Print this help")
+	ver := getopt.BoolLong("version", 0, "Report version number")
 
 	getopt.SetParameters("")
 	getopt.Parse()
+
+	/*** -h / -v ***/
+	if *help {
+		getopt.Usage()
+		fmt.Println("\nReport bugs to http://github.com/knz/reg/issues")
+		os.Exit(0)
+	}
+
+	if *ver {
+		fmt.Println("reg (REG-ulator)", version)
+		os.Exit(0)
+	}
 
 	/*** -i / -o ***/
 
