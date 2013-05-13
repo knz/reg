@@ -1,4 +1,4 @@
-all: reg.1 reg.pdf reg design.html design1.png design2.png
+all: reg.1 reg.pdf reg design.html design1.png 
 
 .SUFFIXES: .1 .rst .dvi .pdf .dot .png .html
 
