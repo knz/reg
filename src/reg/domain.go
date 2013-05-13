@@ -25,7 +25,7 @@ func MakeDomain(ts ticks.Source,
 }
 
 func (d *Domain) Start(inputfile *os.File, outputfile *os.File,
-	outputpertype int, ThrottleMinPeriod float64, dropfirst bool) {
+	outputpertype int, ThrottleMinPeriod float64, granularity t.Ticks) {
 
 	tsource_mergeticks := make(chan t.Ticks)
 	readlines_parse := make(chan string)
@@ -40,7 +40,14 @@ func (d *Domain) Start(inputfile *os.File, outputfile *os.File,
 	output_outmgt := make(chan bool)
 
 	mergeticksOutput := make(chan t.Ticks)
-	ssourceInput := mergeticksOutput
+	mergeticksOutputT := mergeticksOutput
+
+	if granularity > 0 {
+		mergeticksOutputT = make(chan t.Ticks)
+		go throttle_ticks(granularity, mergeticksOutput, mergeticksOutputT)
+	}
+
+	ssourceInput := mergeticksOutputT
 	ssourceOutput := make(chan t.TicksSteps)
 	sampleInput := ssourceOutput
 	flood := false
@@ -56,7 +63,7 @@ func (d *Domain) Start(inputfile *os.File, outputfile *os.File,
 	case OUTPUT_THROTTLE_TICKS:
 		teeticks_throttle := make(chan float64)
 		ssourceInput = make(chan t.Ticks)
-		go ticks.TeeTicks(ssourceInput, teeticks_throttle, mergeticksOutput)
+		go ticks.TeeTicks(ssourceInput, teeticks_throttle, mergeticksOutputT)
 		go throttle(ThrottleMinPeriod, teeticks_throttle, parse_outmgt)
 	}
 
@@ -68,7 +75,7 @@ func (d *Domain) Start(inputfile *os.File, outputfile *os.File,
 	go d.StepSource.Start(ssourceInput, ssourceOutput)
 	go d.Sampler.Start(sampleInput, sample_integrate)
 
-	go d.integrate(dropfirst, integrate_outmgt, integrate_actuator, parse_integrate, outmgt_integrate, sample_integrate)
+	go d.integrate(integrate_outmgt, integrate_actuator, parse_integrate, outmgt_integrate, sample_integrate)
 
 	go d.Actuator.Start(integrate_actuator)
 

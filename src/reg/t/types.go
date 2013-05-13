@@ -6,9 +6,10 @@ type Stuff float64
 type StuffSteps float64
 
 const (
-	SRC_MONOTONIC = iota
-	SRC_INIT_THEN_DELTAS
-	SRC_DELTAS_ONLY
+	SRC_D = 0 // bit 0 unset: DELTAS
+	SRC_O = 2 // bit 1 set: SELF ORIGIN
+	SRC_M = 3 // bit 0+1 set: MONOTONIC, SELF ORIGIN
+	SRC_Z = 4 // bit 2 set: FORCE ORIGIN ZERO
 )
 
 type TicksSteps struct {

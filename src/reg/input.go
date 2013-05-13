@@ -1,5 +1,6 @@
 package reg
 
+import . "assert"
 import (
 	"bufio"
 	"io"
@@ -27,12 +28,17 @@ func parse(input <-chan string, ticksctl chan<- t.Ticks, supplycmd chan<- Supply
 
 		switch cmdargs[0] {
 		case ".":
-			v, _ := strconv.ParseFloat(cmdargs[1], 64)
+			Assert(len(cmdargs) == 2, "invalid syntax for . on input: ", cmd)
+			v, err := strconv.ParseFloat(cmdargs[1], 64)
+			CheckErrIsNil(err, "parsing . on input")
 			ticksctl <- t.Ticks(v)
 		case "+":
-			v, _ := strconv.ParseFloat(cmdargs[1], 64)
+			Assert(len(cmdargs) == 2, "invalid syntax for + on input: ", cmd)
+			v, err := strconv.ParseFloat(cmdargs[1], 64)
+			CheckErrIsNil(err, "parsing + on input")
 			supplycmd <- SupplyCmd{supply: t.StuffSteps(v)}
 		case "?":
+			Assert(len(cmdargs) == 1, "invalid syntax for ? on input: ", cmd)
 			statusctl <- true
 		}
 	}

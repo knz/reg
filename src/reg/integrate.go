@@ -33,7 +33,6 @@ func (qs *qstate) make_status(supply t.StuffSteps) t.Status {
 }
 
 func (d *Domain) integrate(
-	dropfirst bool,
 	status chan<- t.Status,
 	action chan<- t.Status,
 	supplycmd <-chan SupplyCmd,
@@ -47,10 +46,6 @@ func (d *Domain) integrate(
 		update := false
 		select {
 		case m := <-measure:
-			if dropfirst {
-				dropfirst = false
-				continue
-			}
 
 			delta := t.StuffSteps(float64(m.Steps) * float64(m.Usage))
 			supply -= delta

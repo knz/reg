@@ -23,8 +23,14 @@ func (ts *ticksource_cmd) Start(prod chan<- t.Ticks) {
 	go ts.cmd.Start(nil, cmdout)
 
 	lastval := t.Ticks(0)
-	if ts.sourcetype == t.SRC_DELTAS_ONLY {
-		// no initial value provided by command, fake one
+
+	if (ts.sourcetype&t.SRC_Z != 0) || (ts.sourcetype&t.SRC_O == 0) {
+		// we produce zero as origin in this case.
+		// If the command also produces an origin, just wait for it and then ignore.
+		if ts.sourcetype&t.SRC_O != 0 {
+			<-cmdout
+		}
+		// then emit the zero origin.
 		prod <- t.Ticks(0)
 	}
 
@@ -36,7 +42,7 @@ func (ts *ticksource_cmd) Start(prod chan<- t.Ticks) {
 
 		val := t.Ticks(v)
 
-		if ts.sourcetype == t.SRC_MONOTONIC {
+		if ts.sourcetype&t.SRC_M != 0 {
 			tmp := val - lastval
 			lastval = val
 			val = tmp

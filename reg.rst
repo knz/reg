@@ -6,7 +6,7 @@
  Process REGulator
 -------------------
 
-:Date: April 2013
+:Date: May 2013
 :Manual section: 1
 
 SYNOPSIS
@@ -19,72 +19,56 @@ SYNOPSIS
 DESCRIPTION
 ===========
 
-The ``reg``-ulator forces the execution of another process to stay
-within a resource budget decided dynamically.
+The ``reg``-ulator monitors a resource metric of a system and signals
+the system when the metric exceeds a resource budget decided
+dynamically.
+
 
 Operation
 ---------
 
-``reg`` can be either attached to an already running process (``reg
--a <pid>``), individual thread (``reg -a thread:<pid>``) or start the process
-to be regulated (``reg <cmd...>``).
+``reg`` reads *resource supplies* on its input stream, and produces
+*resource usage reports* on its output stream. Asynchronously, it
+monitors *resource usage metrics* on the system. Whenever the resource
+supply is exhausted, it informs an *actuator* to regulate the system.
 
-Once a process is harnessed, ``reg`` reads *resource supplies* on its
-standard input, and produces *resource usage reports* on its standard
-output. It also regulates the harnessed processes so that their
-resource consumption does not exceed the provided supplies.
+See `RESOURCE MANAGEMENT`_ below.
 
 
 Options
 -------
 
-``-a``, ``--attach <PID>``
-    Attach to an already running process or thread. If ``<PID>`` is a number,
-    attach to an entire process, including all its threads. If ``<PID>`` is
-    of the form ``thread:PID``, attach to the single thread with that PID.
-
-``-d``, ``--domain <LABEL>``
-    Define a management domain with label ``<LABEL>``. See `MANAGEMENT
-    DOMAINS`_ below.
-
-``-f``, ``--follow <PRED>``
-    Use command ``<PRED>`` to determine whether to follow child
-    processes/threads. See `RECURSIVE THREAD/PROCESS CREATION`_ below.
-
-``-g``, ``--granularity <N>``
-    Set the granularity of measurements/decisions to ``<N>``. See
-    `GRANULARITY`_ below.
-
-``-i``, ``--input <FILE>``
+``-i <FILE>``
     Use ``<FILE>`` as input stream. By default, the standard input is
     used. See `INPUT LANGUAGE`_ below.
 
-``-o``, ``--output <FILE>``
+``-o <FILE>``
     Use ``<FILE>`` as output stream. By default, the standard output is used.
     See `OUTPUT FORMAT`_ below.
 
-``-p``, ``--protocol <SPEC>``
-    Use ``<SPEC>`` as protocol to regulate the processes. See
-    `REGULATION PROTOCOL`_ below.
-
-``-r``, ``--resource <LABEL>:<SPEC>``
-    Add the resource specified by ``<SPEC>`` under control of ``reg``
-    with label ``<LABEL>``. See `RESOURCE SPECIFICATION`_ below.
-
-``-R``, ``--rate <N>``
-    Configure how often status records are generated on the output stream. See
-    `OUTPUT RATE`_ below.
-
-``-s``, ``--steps <SPEC>``
-    Use ``<SPEC>`` as a progress indicator function. See `PROGRESS
-    INDICATOR`_ below.
-
-``-t``, ``--ticks <SPEC>``
+``-t <SPEC>``
     Use ``<SPEC>`` as a time discretization function. See `TIME
     DISCRETIZATION`_ below.
 
-``-v``, ``--verbose``
-    Verbose execution (details on standard error).
+``-g <N>``
+    Force the granularity of the tick generator to ``<N>``. See
+    `GRANULARITY`_ below.
+
+``-s <SPEC>``
+    Use ``<SPEC>`` as a progress indicator function. See `PROGRESS
+    INDICATOR`_ below.
+
+``-m <SPEC>``
+    Use ``<SPEC>`` as monitor for resource usage.
+    See `MONITOR SPECIFICATION`_ below.
+
+``-a <SPEC>``
+    Use ``<SPEC>`` as actuator to regulate the system. See
+    `ACTUATION`_ below.
+
+``-p <SPEC>``
+    Configure how often status records are generated on the output stream. See
+    `OUTPUT RATE`_ below.
 
 RESOURCE MANAGEMENT
 ===================
@@ -92,51 +76,58 @@ RESOURCE MANAGEMENT
 Resource management is modeled as follows:
 
 - process execution is discretized over a function *t*, typically
-  time, which increases monotonically regardless of process
-  state. Other options are available, see `TIME DISCRETIZATION`_
-  below.  The unit for *t* is *ticks*.
+  time, expected to increase monotonically. Other options are
+  available, see `TIME DISCRETIZATION`_ below.  The unit for *t* is
+  *ticks*.
 
-- *progress* during process execution can be measured using a function
-  *d(t)*, typically "user time", which increases monotonically while a
-  process is running and not stopped. Other options are available, see
-  `PROGRESS INDICATOR`_ below. The unit for *d(t)* values is
-  *steps*.
+- *progress* is measured using a function *d(t)*, for example "user
+  time", which increases monotonically while the monitoring system is
+  active. Other options are available, see `PROGRESS INDICATOR`_
+  below. The unit for *d(t)* values is *steps*.
 
-- for a given resource *f* the harnessed processes have a *current
-  level* of resource usage *f(t)*, which can be observed at every
-  tick, and for which there may be no known upper limit. The unit for
-  values of *f(t)* is *stuff*.  (For example bytes for memory,
-  bytes/sec for channels, etc.)
+- the *current level* of resource usage *f(t)* is observed at every
+  tick. The unit for values of *f(t)* is *stuff*.  (For example bytes
+  for memory, bytes/sec for channels, etc.)
 
-Using this model, ``reg`` controls resource usage as follows:
+Using this model, ``reg`` regulates resource usage as follows:
 
-- ``reg`` associates to each resource *f* a *supply*, expressed in
+- ``reg`` maintains a *supply*, expressed in
   *stuff.steps* (amount of stuff, times amount of steps).
 
-- ``reg`` operates iteratively; at each iteration the increase of
-  steps *d(t)* is observed.  Upon each increment of *d* from *dp =
-  d(tp)* (previous step counter) to *dn = d(t)* (new step counter):
+- at each tick event, the increase of steps *d(t)* is observed.  Upon
+  each increment of *d* from *dp = d(tp)* (previous step counter) to
+  *dn = d(t)* (new step counter):
 
-  1. ``reg`` measures the *integrated resource consumption* since the
-     last step, computed by *f(t)* times *(dn - dp)*.
+  1. ``reg`` measures the *integral resource consumption* since the
+     *last step*, computed by *f(t)* times *(dn - dp)*.
 
-  2. the integrated resource consumption is substracted from the supply;
+  2. the integral resource consumption is substracted from the supply;
 
-  3. if the supply becomes zero or negative, the process is *stopped* until
-     the supply is increased again.
+  3. if the supply becomes zero or negative, the actuator is triggered
+     at each subsequent *t* event, until the supply is
+     increased again.
 
-For example, if the step is user time in seconds and the resource is
-current power usage (watts), the supply is expressed in watts.seconds
-(energy). With a supply of 1 watt.second, a process that consumes .5
-watts per second will be stopped after 2 seconds, and a process that
-consumes 2 watts per second will be stopped after .5 seconds.
+It is expected that the actuator alters the system to slow down the
+progress function, so that the integral resource consumption
+is reduced.
 
-Another example: if the resource is current memory footprint (bytes),
-the supply is expressed in bytes.seconds. With a supply of
-100MBytes.second, a process that allocates 10MBytes every second will
-stop after 10 seconds, whereas one that allocates 1GByte in one go
-will be stopped directly after this first allocation with a remaining
-supply of -900 MBytes.second.
+Consider for example an instance of ``reg`` whose actuators *stops* a
+process upon supply exhaustion, and *restarts* the process when the
+supply becomes positive again. The step function is the user time used
+by the process in seconds.
+
+If the resource is current power usage (watts), the supply is
+expressed in watts.seconds (energy). With a supply of 1 watt.second, a
+process that consumes .5 watts per second will be stopped after 2
+seconds, and a process that consumes 2 watts per second will be
+stopped after .5 seconds.
+
+If the resource is current memory footprint (bytes), the supply is
+expressed in bytes.seconds. With a supply of 100MBytes.second, a
+process that allocates 10MBytes every second will stop after 10
+seconds, whereas one that allocates 1GByte in one go will be stopped
+directly after this first allocation with a remaining supply of -900
+MBytes.second.
 
 Note: regulation only occurs when *t* increases.
 
@@ -146,89 +137,198 @@ TIME DISCRETIZATION
 By default, ``reg`` discretizes over *absolute time*, where the tick
 unit for *t* is *seconds*.
 
-The following alternatives are available:
-
-======================= ===================================== =================
-Option                  Description                           Unit
-======================= ===================================== =================
-``-t <n>.realseconds``  Absolute time                         seconds . ``<n>``
-``-t <n>.spentjoules``  Energy spent                          joules . ``<n>``
-``-t <n>.controlled``   Explicit messages on ``reg``'s input  t-ticks . ``<n>``
-``-t <n>.[METHOD]``     Custom (cf below)                     (cf below)
-======================= ===================================== =================
-
-The first numeric argument is optional and specifies a multiplier. For
-example, ``-t 3600 realseconds`` uses hours as tick unit, and ``-t
-1e-12 spentjoules`` uses picojoules as tick unit. If it is not
-specified, it defaults to 1. For example, ``-t 1 realseconds`` is
-equivalent to ``-t realseconds``.
-
-.. TBD: whether to use SI multipliers?
-.. The multiplier can also be specified using a SI multiplier: ``k`` for
-.. 1000, ``m`` for 0.001, etc. For example ``-t p spentjoules`` is
-.. equivalent to ``-t 1e-12 spentjoules``.
-
-Custom discretizations can be defined using the following options:
-
-``-t <n>.re:<path>:<regex>``
-  Use a regular expression match on the specified file and use the
-  first match group (if any) as tick counter.
-
-``-t <n>.cg:<subsystem>:<regex>``
-  Use a regular expression match on the specified control file of the
-  selected cgroup subsystem and use the first match group (if any) as
-  tick counter.
+The argument ``-t`` specifies a function that generates tick
+events. The general syntax is ``-t <TYPE>/<FLAGS>:<ARG>``, where
+``<TYPE>`` indicates the type of function, ``<FLAGS>`` indicate how
+the function's events are modified, and ``<ARG>`` is an argument to
+the function. See `Tick functions`_ and `Tick function flags`_ below.
 
 When using custom time discretizations, beware to use a function that
-increases even when the harnessed process is stopped. Otherwise,
-deadlock would ensue: ``reg`` would stop regulating and never wake up
-the harnessed process again.
+increases monotonically, even when the monitored system is
+idle. Otherwise, deadlock would ensue: ``reg`` would stop regulating
+and never trigger the actuator again.
+
+Tick functions
+--------------
+
+The following predefined functions are available:
+
+======================= ===================================== =================
+Function                Description                           Unit
+======================= ===================================== =================
+``time``                Absolute time                         seconds
+``ptime``               Absolute time                         periods
+``cmd``                 Shell command (individual calls)      (custom)
+``proc``                Shell command (interactive)           (custom)
+``dummy``               Generates a single event (debugging)  (unitless)
+======================= ===================================== =================
+
+
+With both functions ``time`` and ``ptime``, the argument
+specifies the time period between tick events. The difference between
+``time`` and ``ptime`` is that the value of each ``time`` event
+reports the number of *seconds* actually elapsed since the last event,
+whereas the value of each ``ptime`` event reports the number of
+*periods* elapsed.
+
+For example, ``-t time:2s`` would generate events 2, 4, 6, 8... at
+2-second intervals, whereas ``-t ptime:2s`` would generate events 1, 2,
+3, 4..., also at 2-second intervals.
+
+With function ``cmd``, the command given as argument is run
+repeatedly. A tick event is generated every time the command
+terminates, using the value reported on its standard output.
+
+With the function ``proc``, the command given as argument is run in
+the background. A tick event is generated every time the command
+outputs a line of text on its standard output.
+
+Tick function flags
+-------------------
+
+The optional ``<FLAGS>`` indicate how the function's values are
+translated to tick events.
+
+``z`` (force origin zero)
+   Force the sequence of tick events to have origin value 0, even if
+   the underlying function has a different origin.
+
+``d`` (deltas, applies to ``cmd`` and ``proc``)
+   Each output from the command reports the additional
+   number of ticks elapsed since the last output.
+
+``o`` (self-determined origin, applies to ``cmd`` and ``proc``)
+   The first output from the command indicates the origin of
+   the tick function.
+
+``m`` (monotonic, applies to ``cmd`` and ``proc``)
+   The command reports monotonically increasing values, from a common
+   origin. Implies ``o``.
+
+Examples
+--------
+
+All the following examples cause a tick event to be generated
+every 3 seconds, reporting a +3 tick increase at each event.
+
+The following specifications use ``reg``'s start time as origin:
+
+``-t time:3s``
+
+``-t proc/do:"date +%s; while sleep 3; do echo 3; done"``
+
+``-t proc/m:"while sleep 3; do date +%s; done"``
+
+The following specifications force origin 0:
+
+``-t time/z:3s``
+
+``-t cmd/d:"sleep 3; echo 3"``
+
+``-t proc/doz:"date +%s; while sleep 3; do echo 3; done"``
+
+``-t proc/d:"while sleep 3; do echo 3; done"``
+
+``-t proc/mz:"while sleep 3; do date +%s; done"``
+
 
 PROGRESS INDICATOR
 ==================
 
-By default, ``reg`` measures process progress using *user time*, where
-the step unit for *d(t)* is *seconds*. The following alternatives are
-available:
+The argument ``-s`` specifies a progress indicator function, which
+maps tick increases into step increases. The general syntax
+is ``-s <TYPE>/<FLAGS>:<ARG>``, similarly to ``-t`` above.
 
-======================== ========================= =================
-Option                   Description               Unit
-======================== ========================= =================
-``-s <n>.userseconds``   User time                 seconds . ``<n>``
-``-s <n>.jiffies``       Scheduler time slices     jiffies . ``<n>``
-``-s <n>.instructions``  Instructions executed     instructions . ``<n>``
-``-s <n>.[METHOD]``      Custom                    (depends on method)
-======================== ========================= =================
+Step functions
+--------------
 
-Custom progress functions can be configured with ``-s`` as for ``-t`` above.
+The following predefined functions are available:
 
+======================= ===================================== =================
+Function                Description                           Unit
+======================= ===================================== =================
+``cmd``                 Shell command (individual calls)      (custom)
+``proc``                Shell command (interactive)           (custom)
+``dummy``               Report no progress (debugging)        (unitless)
+======================= ===================================== =================
 
-RESOURCE SPECIFICATION
-======================
+With function ``cmd``, the command given as argument is run at each
+tick event. The tick value is provided as command-line argument to the
+command. The progress indicator event is generated when the command
+terminates, using the value reported on its standard output.
 
-A resource function and supply bin can be defined with the option
-``-r <LABEL>:<FUNCTION>``. ``-r`` can be used multiple times with
-different labels to define multiple supply bins.
+With function ``proc``, the command given as argument is run in the
+background.  At each tick event, the tick value is written on the
+command's standard input. The progress indicator event is generated
+when the process responds on its standard output.
+
+Step function flags
+-------------------
+
+The optional ``<FLAGS>`` indicate how the function's values are
+translated to tick events.
+
+``z`` (force origin zero)
+   Force the sequence of step events to have origin value 0, even if
+   the underlying function has a different origin.
+
+``d`` (deltas, applies to ``cmd`` and ``proc``)
+   Each output from the command reports the additional
+   number of steps elapsed since the last output.
+
+``o`` (self-determined origin, applies to ``cmd`` and ``proc``)
+   The origin of the tick function is provided as first input to the
+   step function. The first output from the command indicates the
+   origin of the step function.
+
+``m`` (monotonic, applies to ``cmd`` and ``proc``)
+   The command reports monotonically increasing values, from a common
+   origin. Implies ``o``.
+
+Example
+-------
+
+The following specification uses process 99298's CPU time as step
+function::
+
+  -t cmd/m:"ps -o cputime= -p 99298|tr ':.' '  '|awk '{print \$1*60+\$2+\$3/100. }'"
+
+With this specification, ``reg`` runs the command at every tick
+event. The ``ps`` command reports the CPU time of process 99298. The
+filtering by ``tr`` and ``awk`` translates ``ps``'s CPU time
+formatting into a number of seconds.
+
+MONITOR SPECIFICATION
+=====================
+
+The argument ``-m`` specifies a resource function, which
+maps tick/step increases into resource usage. The general
+syntax is ``-m <TYPE>:<ARG>``.
 
 The following functions are available:
 
-=============== ============================== ===================
-Function        Description                    Unit
-=============== ============================== ===================
-``steps``       Current step counter           (same as step unit)
-``threads``     Number of threads harnessed    threads
-``load``        Average CPU load               load
-``vsize``       Virtual memory size            bytes
-``rsize``       Resident memory size           bytes
-``[METHOD]``    Custom                         (depends on method)
-=============== ============================== ===================
+=============== ===================================== ===================
+Function        Description                           Unit
+=============== ===================================== ===================
+``cmd``         Shell command (individual calls)      (custom)
+``proc``        Shell command (interactive)           (custom)
+``dummy``       Report no usage (debugging)           (unitless)
+=============== ===================================== ===================
 
-All special progress functions (``userseconds``, ``jiffies``, etc) are
-also valid resource functions.
+With function ``cmd``, the command given as argument is run at each
+tick event. The tick and step values are provided as command-line
+arguments to the command. The resource usage event is generated when
+the command terminates, using the value reported on its standard
+output.
 
-Custom resource functions can be computed with ``-r`` as for ``-s``
-and ``-t`` above.
+With function ``proc``, the command given as argument is run in the
+background.  At each tick event, the tick and step values are written
+on the command's standard input, separated by a space. The resource
+usage event is generated when the process responds on its standard
+output.
 
+With both functions, the first input to the command is the origin of
+the ticks and steps functions.
 
 INPUT LANGUAGE
 ==============
@@ -241,50 +341,28 @@ input stream:
   increment the discretization counter by the specified amount of
   ticks. Otherwise, do nothing.
 
-``+ <supply> <amount>``
-  Add the specified number of stuff.steps in the selected resource
-  supply(ies). If ``<amount>`` is ``*``, add an infinite supply.
+``+ <amount>``
+  Add the specified number of stuff.steps to the resource
+  supply. If ``<amount>`` is ``*``, add an infinite supply.
 
-``- <supply> <amount>``
-  Substract the specified number of stuff.steps from the selected
-  resource supply(ies). If ``<amount>`` is ``*``, empty the entire
-  supply. If the bin does not exist or its supply is already empty, the
-  command has no effect.
+``- <amount>``
+
+  Substract the specified number of stuff.steps from the resource
+  supply. If ``<amount>`` is ``*``, empty the entire supply.
 
 ``?``
   Emit a status record on the output stream.
 
-The syntax of ``<supply>`` for the commands ``+`` and ``-`` can be a
-shell wildcard pattern, using the syntax recognized by fnmatch(1). If
-a pattern matches multiple resource labels, the operation (add or
-substract) is performed on all of them.
-
-.. All amounts (or ticks for ``.``) can be followed by an SI
-.. multiplier. For example, ``. 1k`` is equivalent to ``. 1000``.
-
-
 OUTPUT FORMAT
 =============
 
-Each status record ends with a newline
-character, and is composed of the following space-separated columns:
+Each status record ends with a newline character, and is composed of
+the following space-separated columns:
 
-- the label of the management domain (cf. `MANAGEMENT DOMAINS`_ below),
 - the current tick,
 - the tick delta (number of ticks elapsed since the last status record),
-- the current step, and step delta,
-- the number of resource functions defined,
-- for each resource function defined:
-
-  - the label of the function,
-  - the current supply,
-  - the amount of supply change since the last status record,
-
-- the number of threads harnessed,
-- for each thread harnessed:
-
-  - the process ID of the process where the thread belongs (TGID),
-  - the process ID of the thread itself.
+- the current step & step delta,
+- the current supply & supply delta.
 
 OUTPUT RATE
 ===========
@@ -292,25 +370,22 @@ OUTPUT RATE
 By default, ``reg`` produces status records after each explicit ``?``
 command on the input stream.
 
-Additionally, the option ``-R <N>.steps`` and ``-R <N>.ticks``
+Additionally, the option ``-p steps:<N>`` and ``-p ticks:<N>``
 instructs ``reg`` to emit records periodically, with the period
 specified (either steps or ticks).
-
-.. The number can be followed by an SI
-.. multiplier.
 
 ``reg`` does not block on output: if the output stream is blocked, the
 deltas accumulate until ``reg`` becomes able to output records again. If
 more than one ``?`` input commands are received on the input, or periods
-of ``-R`` are elapsed while the output stream is blocked, they are
+of ``-p`` are elapsed while the output stream is blocked, they are
 ignored and only one status record is emitted on the output stream
 when it becomes unblocked.
 
-With option ``-R 0`` (flood), as many status records are generated as
+With option ``-p flood``, as many status records are generated as
 possible when the output stream is unblocked. The consumer process is
 then in charge of controlling the rate by throttling its input.
 
-With ``-R none`` the automatic output is disabled and records are only
+With ``-p none`` the automatic output is disabled and records are only
 output when ``?`` is received on the input.  (this is the default).
 
 
@@ -321,138 +396,56 @@ The rate at which ``reg`` monitors ``t`` and makes regulation decisions
 is determined by the *granularity* parameter, selected with option
 ``-g <value>``.
 
-The granularity is the multiple of the unit of the time discretization
-function that ``reg`` attempts to track. For example, with time
-measured in seconds and ``-g 0.001``, ``reg`` will attempt to keep
-track of resource usage every millisecond.
+In other words, ``reg`` groups the tick events generated by the time
+discretization function so that the minimum increment between
+subsequent events is ``<value>``.  For example, with ``-t
+time:300ms -g 2``, ``reg`` will coalesce approximately every 6 events
+into a single +2 second event.
 
-By default, the granularity is 1.
+If ``<value>`` is 0, the granularity is not enforced (all tick events
+are used). This is the default.
 
 
-RECURSIVE THREAD/PROCESS CREATION
-==================================
+ACTUATION
+=========
 
-By default, all threads and processes recursively created by
-the regulated program are collectively regulated by the same
-``reg`` instance.
+When the supply is exhausted, ``reg`` informs the actuator defined by
+argument ``-a`` periodically (at every subsequent tick event) until
+the supply is provisioned again.
 
-If the option ``-f <pred>`` is specified, ``reg`` will run the command
-``<pred>`` upon the creation of each new thread or process to decide
-whether to keep the child thread/process regulated.
-
-If the ``<pred>`` exits with status 0, the created thread/process
-stays regulated. If ``<pred>`` exits with a non-zero status, the
-created thread/process is removed from ``reg``'s control. Three
-command line arguments are provided to ``<pred>``:
-
-- the parent ID (PPID),
-- the thread group leader ID of the newly created thread (TGID)
-- the process ID of the newly created thread (PID).
-
-(If TGID = PID, a new process was created. Otherwise, a new thread was
-created in the process identified by the TGID.)
-
-The default behavior is thus equivalent to ``-f true``.
-
-REGULATION PROTOCOL
-===================
-
-By default, ``reg`` uses Linux cgroups' "freeze" subsystem to regulate
-processes: the processes are frozen if a resource supply is exhausted,
-and thawed when the supply becomes available again.
-
-The protocol can be specified as follows:
+The actuator can be defined by ``-a <TYPE>:<ARG>``. The following actuator types
+are supported.
 
 ================== ================================================
-Option             Description
+Actuator           Description
 ================== ================================================
-``-p freeze``      Use cgroups/freeze as regulation mechanism (default).
-``-p stop``        Use SIGSTOP/SIGCONT as regulation mechanism.
-``-p out:<FILE>``  Send commands through ``<FILE>``.
-``-p run:<CMD>``   Use the external program ``<CMD>``.
+``print``          Print the current supply status to file.
+``cmd``            Shell command (individual calls)
+``proc``           Shell command (interactive)
+``dummy``          Do nothing (debugging)
 ================== ================================================
 
-With ``-p fd``, the following commands are sent to the specified file:
+With function ``print``, the current supply status and last
+ticks/steps/supply update are printed to the file specified with
+``<ARG>`` at each tick event when the supply is exhausted.
 
-``overflow <RES> <SUPPLY> <DELTA> <PIDs...>``
+With ``cmd``, the shell command is run at each tick event, with the
+current ticks/steps/supply update provided as command-line arguments.
 
-    Signal an overflow. The fields are as follows:
+With ``proc``, the shell command is run in the background, and the
+current ticks/steps/supply update is provided on the command's
+standard input at each tick event.
 
-    ============== =================================
-    Field          Description
-    ============== =================================
-    ``<RES>``      Resource label causing the overflow, as configured by ``-r``.
-    ``<SUPPLY>``   Current supply for the resource.
-    ``<DELTA>``    Last amount substracted by the process.
-    ``<PIDs...>``  Current list of harnessed processes.
-    ============== =================================
-
-``ok <PIDs...>``
-    Signal that all supplies are zero or positive.
-
-With ``-p run``, the specified command is invoked as follows:
-
-``<CMD> overflow <RES> <SUPPLY> <DELTA> <PIDs...>``
-
-or
-
-``<CMD> ok <PIDs...>``
-
-(same argument meanings as ``-p fd`` above)
-
-Note: the effect of an overflow command should be to stop the progress
-function *d(t)* (make it constant), so that its integrated resource
-consumption stays zero until the supply is increased and the process
-is restarted.
-
-MANAGEMENT DOMAINS
-==================
-
-In the current implementation, a given thread can be harnessed by at
-most one ``reg`` instance. Therefore, each ``reg`` instance can
-monitor multiple time discretization, progress and resource usage
-functions simultaneously.
-
-This is supported as follows:
-
-- ``reg`` defines one or more *management domains*; the first is
-  always defined and is named ``default``. More domains are declared
-  with option ``-d``.
-
-- each management domain must define:
-
-  - exactly one time discretization function,
-  - exactly one progress function,
-  - one or more resource functions,
-  - an input and output stream.
-
-- the parameters ``-t``, ``-s``, ``-g``, ``-R``, ``-r``, ``-i`` and ``-o``
-  described above set the corresponding parameter of the domain
-  ``default``. If either ``-t`` or ``-s`` are not used, ``default``
-  uses real time and user time, respectively. If either ``-i`` or
-  ``-o`` are not used, ``default`` uses the standard input and output,
-  respectively.
-
-- to set parameters in a domain ``DOM``, the options ``-t DOM=<arg>``,
-  ``-s DOM=<arg>``, ``-g DOM=<arg>``, ``-R DOM=<arg>``, ``-r
-  DOM=<arg>``, ``-i DOM=<arg>``, ``-o DOM=<arg>`` can be
-  used.
-
+Note: the effect of an actuator should be to stop/throttle the
+progress function *d(t)* (e.g. make it constant), so that its integral
+resource consumption stays zero until the supply is increased and the
+process is restarted.
 
 EXIT STATUS
 ===========
 
-``reg`` terminates with the following exit codes:
+``reg`` terminates with exit status 0 when its input stream is
+exhausted (end-of-file is encounted while reading).
 
-0
-   All harnessed process/thread have terminated, or both the input and
-   output streams have been closed.
-
-1
-   A configuration or environment error prevents ``reg`` from starting.
-
-2
-   An invalid command was received on the input stream.
-
-Other errors (signals, unknown situations etc) are reported with other
-exit codes.
+Errors, signals, unknown situations, etc. are reported with other exit
+codes.

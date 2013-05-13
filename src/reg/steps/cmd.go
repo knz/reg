@@ -1,8 +1,8 @@
 package steps
 
+import . "assert"
 import (
 	"fmt"
-	"log"
 	"reg/cmd"
 	"reg/t"
 	"strconv"
@@ -24,8 +24,17 @@ func (ss *stepsource_cmd) Start(src <-chan t.Ticks, prod chan<- t.TicksSteps) {
 
 	go ss.cmd.Start(cmdin, cmdout)
 
-	if ss.sourcetype == t.SRC_DELTAS_ONLY {
-		prod <- t.TicksSteps{Ticks: <-src, Steps: 0}
+	if (ss.sourcetype&t.SRC_Z != 0) || (ss.sourcetype&t.SRC_O == 0) {
+		// we produce zero as origin in this case.
+		// If the step function also produces an origin, just wait for it and then ignore.
+		tsrc := <-src
+		if ss.sourcetype&t.SRC_O != 0 {
+			args := make([]string, 1)
+			args[0] = fmt.Sprint(tsrc)
+			cmdin <- args
+			<-cmdout // drop it
+		}
+		prod <- t.TicksSteps{Ticks: tsrc, Steps: 0}
 	}
 
 	var lastval t.Steps
@@ -40,7 +49,7 @@ func (ss *stepsource_cmd) Start(src <-chan t.Ticks, prod chan<- t.TicksSteps) {
 
 		sval := t.Steps(v)
 
-		if ss.sourcetype == t.SRC_MONOTONIC {
+		if ss.sourcetype&t.SRC_M != 0 {
 			tmp := sval - lastval
 			lastval = sval
 			sval = tmp
