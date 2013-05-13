@@ -2,7 +2,6 @@ package main
 
 import . "assert"
 import (
-	"fmt"
 	"getopt"
 	"os"
 	"reg"
@@ -73,20 +72,21 @@ func main() {
 		fin = os.Stdin
 	} else {
 		fin, err = os.Open(*ifname)
-		CheckErrIsNil(err, "-i")
+		Assert(err == nil, "-i :", err)
 	}
 
 	if *ofname == "-" {
 		fout = os.Stdout
 	} else {
 		fout, err = os.OpenFile(*ofname, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-		CheckErrIsNil(err, "-o")
+		Assert(err == nil, "-o :", err)
 	}
 
 	/*** -g ***/
 
 	g, err := strconv.ParseFloat(*gran, 64)
-	CheckErrIsNil(err, "-g")
+	Assert(err == nil, "-g :", err)
+	Assert(g >= 0, "-g : granularity cannot be negative")
 
 	/*** -p ***/
 
@@ -103,17 +103,22 @@ func main() {
 		throttle_type = reg.OUTPUT_FLOOD
 	case "ticks":
 		throttle_type = reg.OUTPUT_THROTTLE_TICKS
-		throttle_period, err = strconv.ParseFloat(spec_arg, 64)
-		CheckErrIsNil(err, "-p ticks")
+		if spec_arg != "" {
+			throttle_period, err = strconv.ParseFloat(spec_arg, 64)
+			Assert(err == nil, "-p ticks :", err)
+		}
 		Assert(spec_flags == "", "-p ticks does not accept flags")
 	case "steps":
 		throttle_type = reg.OUTPUT_THROTTLE_STEPS
-		throttle_period, err = strconv.ParseFloat(spec_arg, 64)
-		CheckErrIsNil(err, "-p steps")
+		if spec_arg != "" {
+			throttle_period, err = strconv.ParseFloat(spec_arg, 64)
+			Assert(err == nil, "-p steps :", err)
+		}
 		Assert(spec_flags == "", "-p steps does not accept flags")
 	default:
 		Assert(false, "invalid syntax for -p")
 	}
+	Assert(throttle_period >= 0, "-p : period cannot be negative")
 
 	/*** -a ***/
 
@@ -121,16 +126,16 @@ func main() {
 	spec_type, spec_flags, spec_arg = split(*aspec)
 	Assert(spec_flags == "", "-a does not accept flags")
 	switch spec_type {
-	case "dummy":
-		Assert(spec_arg == "", "-a dummy does not accept argument")
+	case "discard":
+		Assert(spec_arg == "", "-a discard does not accept argument")
 		a = act.MakeDummyActuator()
 	case "print":
 		var af *os.File
 		if spec_arg == "-" {
 			af = os.Stdout
 		} else {
-			af, err = os.OpenFile(*ofname, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-			CheckErrIsNil(err, "-a")
+			af, err = os.OpenFile(spec_arg, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+			Assert(err == nil, "-a :", err)
 		}
 		a = act.MakePrinterActuator(af)
 	case "proc":
@@ -146,17 +151,21 @@ func main() {
 	var ts ticks.Source
 	spec_type, spec_flags, spec_arg = split(*tspec)
 	switch spec_type {
-	case "dummy":
-		Assert(spec_flags == "" && spec_arg == "", "-t dummy does not accept flags/argument")
-		ts = ticks.MakeDummySource()
+	case "instant":
+		Assert(spec_flags == "", "-t instant does not accept flags")
+		v := float64(0)
+		if spec_arg != "" {
+			v, err = strconv.ParseFloat(spec_arg, 64)
+			Assert(err == nil, "-t instant:", err)
+		}
+		ts = ticks.MakeDummySource(t.Ticks(v))
 	case "time", "ptime", "cmd", "proc":
 		stype, ok := flagconv(spec_flags)
-		fmt.Println("HELLO", stype, ok, spec_flags)
 		Assert(ok, "invalid flags for -t")
 		switch spec_type {
 		case "time", "ptime":
 			d, err := time.ParseDuration(spec_arg)
-			CheckErrIsNil(err, "-t")
+			Assert(err == nil, "-t :", err)
 			ts = ticks.MakeTimerSource(d, stype, spec_type == "ptype")
 		case "cmd":
 			ts = ticks.MakeCommandSource(cmd.MakeOneShotCommand(spec_arg), stype)
@@ -172,9 +181,15 @@ func main() {
 	var ss steps.Source
 	spec_type, spec_flags, spec_arg = split(*sspec)
 	switch spec_type {
-	case "dummy":
-		Assert(spec_flags == "" && spec_arg == "", "-s dummy does not accept flags/argument")
-		ss = steps.MakeDummySource()
+	case "const":
+		Assert(spec_flags == "", "-s dummy does not accept flags")
+		v := float64(0)
+		if spec_arg != "" {
+			v, err = strconv.ParseFloat(spec_arg, 64)
+			Assert(err == nil, "-s const:", err)
+			Assert(v >= 0, "-s const: constant cannot be negative")
+		}
+		ss = steps.MakeDummySource(t.Steps(v))
 	case "cmd", "proc":
 		stype, ok := flagconv(spec_flags)
 		Assert(ok, "invalid flags for -s")
@@ -193,9 +208,14 @@ func main() {
 	var m sample.Sampler
 	spec_type, spec_flags, spec_arg = split(*mspec)
 	switch spec_type {
-	case "dummy":
-		Assert(spec_flags == "" && spec_arg == "", "-m dummy does not accept flags/argument")
-		m = sample.MakeDummySampler()
+	case "const":
+		Assert(spec_flags == "", "-m const does not accept flags")
+		v := float64(0)
+		if spec_arg != "" {
+			v, err = strconv.ParseFloat(spec_arg, 64)
+			Assert(err == nil, "-m const:", err)
+		}
+		m = sample.MakeDummySampler(t.Stuff(v))
 	case "cmd", "proc":
 		Assert(spec_flags == "", "-m cmd/proc does not accept flags")
 		switch spec_type {

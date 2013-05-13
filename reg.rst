@@ -153,15 +153,15 @@ Tick functions
 
 The following predefined functions are available:
 
-======================= ===================================== =================
-Function                Description                           Unit
-======================= ===================================== =================
-``time``                Absolute time                         seconds
-``ptime``               Absolute time                         periods
-``cmd``                 Shell command (individual calls)      (custom)
-``proc``                Shell command (interactive)           (custom)
-``dummy``               Generates a single event (debugging)  (unitless)
-======================= ===================================== =================
+======================= =====================================
+Function                Description
+======================= =====================================
+``time``                Absolute time (in seconds)
+``ptime``               Absolute time (in periods)
+``cmd``                 Shell command (individual calls)
+``proc``                Shell command (interactive)
+``instant``             Generates a single event
+======================= =====================================
 
 
 With both functions ``time`` and ``ptime``, the argument
@@ -182,6 +182,10 @@ terminates, using the value reported on its standard output.
 With the function ``proc``, the command given as argument is run in
 the background. A tick event is generated every time the command
 outputs a line of text on its standard output.
+
+With the function ``instant``, a single tick event is generated, whose
+value is determined by the argument to the function (default 0). This
+feature was originally implemented for debugging ``reg``.
 
 Tick function flags
 -------------------
@@ -244,13 +248,13 @@ Step functions
 
 The following predefined functions are available:
 
-======================= ===================================== =================
-Function                Description                           Unit
-======================= ===================================== =================
-``cmd``                 Shell command (individual calls)      (custom)
-``proc``                Shell command (interactive)           (custom)
-``dummy``               Report no progress (debugging)        (unitless)
-======================= ===================================== =================
+======================= =====================================
+Function                Description
+======================= =====================================
+``cmd``                 Shell command (individual calls)
+``proc``                Shell command (interactive)
+``const``               Report constant progress
+======================= =====================================
 
 With function ``cmd``, the command given as argument is run at each
 tick event. The tick value is provided as command-line argument to the
@@ -261,6 +265,11 @@ With function ``proc``, the command given as argument is run in the
 background.  At each tick event, the tick value is written on the
 command's standard input. The progress indicator event is generated
 when the process responds on its standard output.
+
+With function ``const``, each tick event is mapped to a constant
+number of steps. The function argument determines this number
+of steps, and defaults to 0 (no progress). This
+feature was originally implemented for debugging ``reg``.
 
 Step function flags
 -------------------
@@ -307,13 +316,13 @@ syntax is ``-m <TYPE>:<ARG>``.
 
 The following functions are available:
 
-=============== ===================================== ===================
-Function        Description                           Unit
-=============== ===================================== ===================
-``cmd``         Shell command (individual calls)      (custom)
-``proc``        Shell command (interactive)           (custom)
-``dummy``       Report no usage (debugging)           (unitless)
-=============== ===================================== ===================
+=============== =====================================
+Function        Description
+=============== =====================================
+``cmd``         Shell command (individual calls)
+``proc``        Shell command (interactive)
+``const``       Report constant resource usage
+=============== =====================================
 
 With function ``cmd``, the command given as argument is run at each
 tick event. The tick and step values are provided as command-line
@@ -327,8 +336,13 @@ on the command's standard input, separated by a space. The resource
 usage event is generated when the process responds on its standard
 output.
 
-With both functions, the first input to the command is the origin of
+With both ``cmd`` and ``proc``, the first input to the command is the origin of
 the ticks and steps functions.
+
+With function ``const``, each tick event is mapped to a constant
+resource usage. The function argument determines the amount
+in stuff units, and defaults to 0 (no resource usage). This
+feature was originally implemented for debugging ``reg``.
 
 INPUT LANGUAGE
 ==============
@@ -372,7 +386,8 @@ command on the input stream.
 
 Additionally, the option ``-p steps:<N>`` and ``-p ticks:<N>``
 instructs ``reg`` to emit records periodically, with the period
-specified (either steps or ticks).
+specified (either steps or ticks). If the period is zero, a record
+is emitted for each ticks/steps event.
 
 ``reg`` does not block on output: if the output stream is blocked, the
 deltas accumulate until ``reg`` becomes able to output records again. If
@@ -422,7 +437,7 @@ Actuator           Description
 ``print``          Print the current supply status to file.
 ``cmd``            Shell command (individual calls)
 ``proc``           Shell command (interactive)
-``dummy``          Do nothing (debugging)
+``discard``        Do nothing
 ================== ================================================
 
 With function ``print``, the current supply status and last
@@ -435,6 +450,14 @@ current ticks/steps/supply update provided as command-line arguments.
 With ``proc``, the shell command is run in the background, and the
 current ticks/steps/supply update is provided on the command's
 standard input at each tick event.
+
+The following actuators have therefore the same effect:
+
+``-a print:/dev/tty``
+
+``-a cmd:'echo $@>/dev/tty'``
+
+``-a proc:'while read a; do echo $a>/dev/tty; done'``
 
 Note: the effect of an actuator should be to stop/throttle the
 progress function *d(t)* (e.g. make it constant), so that its integral

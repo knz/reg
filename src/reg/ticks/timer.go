@@ -36,8 +36,7 @@ func (ts *ticksource_timer) Start(prod chan<- t.Ticks) {
 		lasttime = <-src
 	}
 
-	for {
-		v := <-src
+	for v := range src {
 		d := v.Sub(lasttime)
 		lasttime = v
 		prod <- t.Ticks(float64(d) * div)

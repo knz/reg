@@ -23,17 +23,17 @@ func (c *cmd_oneshot) Start(in <-chan []string, out chan<- string) {
 	}
 
 	for {
-		cmdc := exec.Command(shell, "-c", c.cmd)
+		cmdc := exec.Command(shell, "-c", c.cmd, "reg")
 		if in != nil {
 			input := <-in
 			cmdc.Args = append(cmdc.Args, input...)
 		}
 		if out == nil {
 			err := cmdc.Run()
-			CheckErrIsNil(err, cmdc.Args, ":Run()")
+			Assert(err == nil, cmdc.Args, ":Run()", ":", err)
 		} else {
 			output, err := cmdc.Output()
-			CheckErrIsNil(err, cmdc.Args, ":Output()")
+			Assert(err == nil, cmdc.Args, ":Output()", ":", err)
 			out <- string(output[:len(output)-1])
 		}
 	}

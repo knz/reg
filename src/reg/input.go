@@ -30,12 +30,12 @@ func parse(input <-chan string, ticksctl chan<- t.Ticks, supplycmd chan<- Supply
 		case ".":
 			Assert(len(cmdargs) == 2, "invalid syntax for . on input: ", cmd)
 			v, err := strconv.ParseFloat(cmdargs[1], 64)
-			CheckErrIsNil(err, "parsing . on input")
+			Assert(err == nil, "parsing . on input", ":", err)
 			ticksctl <- t.Ticks(v)
 		case "+":
 			Assert(len(cmdargs) == 2, "invalid syntax for + on input: ", cmd)
 			v, err := strconv.ParseFloat(cmdargs[1], 64)
-			CheckErrIsNil(err, "parsing + on input")
+			Assert(err == nil, "parsing + on input", ":", err)
 			supplycmd <- SupplyCmd{supply: t.StuffSteps(v)}
 		case "?":
 			Assert(len(cmdargs) == 1, "invalid syntax for ? on input: ", cmd)

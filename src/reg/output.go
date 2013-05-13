@@ -41,11 +41,11 @@ func output(fd uintptr, out <-chan string, outready chan<- bool) {
 	for {
 		set.Bits[fd/64] = int32(fd) % 64
 		err := syscall.Select(int(fd+1), nil, &set, nil, nil)
-		CheckErrIsNil(err, "Select() for write on fd ", fd)
+		Assert(err == nil, "Select() for write on fd ", fd, ":", err)
 
 		outready <- true
 		cmd := <-out
 		_, err = syscall.Write(int(fd), []byte(cmd))
-		CheckErrIsNil(err, "Write() on fd ", fd)
+		Assert(err == nil, "Write() on fd ", fd, ":", err)
 	}
 }

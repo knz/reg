@@ -45,7 +45,7 @@ func (ss *stepsource_cmd) Start(src <-chan t.Ticks, prod chan<- t.TicksSteps) {
 		cmdin <- args
 		output := <-cmdout
 		v, err := strconv.ParseFloat(output, 64)
-		CheckErrIsNil(err, "parsing steps")
+		Assert(err == nil, "parsing steps", ":", err)
 
 		sval := t.Steps(v)
 

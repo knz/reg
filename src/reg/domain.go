@@ -59,12 +59,20 @@ func (d *Domain) Start(inputfile *os.File, outputfile *os.File,
 		teesteps_throttle := make(chan float64)
 		sampleInput = make(chan t.TicksSteps)
 		go steps.TeeSteps(ssourceOutput, sampleInput, teesteps_throttle)
-		go throttle(ThrottleMinPeriod, teesteps_throttle, parse_outmgt)
+		if ThrottleMinPeriod > 0 {
+			go throttle(ThrottleMinPeriod, teesteps_throttle, parse_outmgt)
+		} else {
+			go forwardctl(teesteps_throttle, parse_outmgt)
+		}
 	case OUTPUT_THROTTLE_TICKS:
 		teeticks_throttle := make(chan float64)
 		ssourceInput = make(chan t.Ticks)
 		go ticks.TeeTicks(ssourceInput, teeticks_throttle, mergeticksOutputT)
-		go throttle(ThrottleMinPeriod, teeticks_throttle, parse_outmgt)
+		if ThrottleMinPeriod > 0 {
+			go throttle(ThrottleMinPeriod, teeticks_throttle, parse_outmgt)
+		} else {
+			go forwardctl(teeticks_throttle, parse_outmgt)
+		}
 	}
 
 	go readlines(inputfile, readlines_parse, d.inputdone)

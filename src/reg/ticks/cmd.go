@@ -38,7 +38,7 @@ func (ts *ticksource_cmd) Start(prod chan<- t.Ticks) {
 		tickstr := <-cmdout
 
 		v, err := strconv.ParseFloat(tickstr, 64)
-		CheckErrIsNil(err, "parsing ticks")
+		Assert(err == nil, "parsing ticks", ":", err)
 
 		val := t.Ticks(v)
 

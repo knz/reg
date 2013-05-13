@@ -1,7 +1,6 @@
 package reg
 
 import (
-	"math"
 	"reg/t"
 )
 
@@ -12,9 +11,8 @@ func throttle_ticks(minperiod t.Ticks, src <-chan t.Ticks, prod chan<- t.Ticks) 
 	for v := range src {
 		val += float64(v)
 		if val >= mp {
-			q := math.Floor(val/mp) * mp
-			prod <- t.Ticks(q)
-			val -= q
+			prod <- t.Ticks(val)
+			val = 0
 		}
 	}
 }

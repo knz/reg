@@ -27,29 +27,29 @@ func (c *cmd_interactive) Start(in <-chan []string, out chan<- string) {
 	var cmdin io.WriteCloser
 	if in != nil {
 		cmdi, err := cmdc.StdinPipe()
-		CheckErrIsNil(err, cmdc.Args, ":StdinPipe()")
+		Assert(err == nil, cmdc.Args, ":StdinPipe()", ":", err)
 		cmdin = cmdi
 	}
 
 	var cmdout *bufio.Reader
 	if out != nil {
 		cmdo, err := cmdc.StdoutPipe()
-		CheckErrIsNil(err, cmdc.Args, ":StdoutPipe()")
+		Assert(err == nil, cmdc.Args, ":StdoutPipe()", ":", err)
 		cmdout = bufio.NewReader(cmdo)
 	}
 
 	err := cmdc.Start()
-	CheckErrIsNil(err, cmdc.Args, ":Start()")
+	Assert(err == nil, cmdc.Args, ":Start()", ":", err)
 
 	for {
 		if in != nil {
 			input := <-in
 			_, err := cmdin.Write([]byte(strings.Join(input, " ") + "\n"))
-			CheckErrIsNil(err, cmdc.Args, ":Write()")
+			Assert(err == nil, cmdc.Args, ":Write()", ":", err)
 		}
 		if out != nil {
 			s, err := cmdout.ReadString('\n')
-			CheckErrIsNil(err, cmdc.Args, ":ReadString()")
+			Assert(err == nil, cmdc.Args, ":ReadString()", ":", err)
 			out <- s[:len(s)-1]
 		}
 	}
