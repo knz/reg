@@ -17,6 +17,11 @@ all: reg.1 reg.pdf reg design.html design1.png design2.png
 .dvi.pdf:
 	dvipdf $< $@
 
-.PHONY: reg
-reg:
-	GOPATH=$$PWD go build -o reg main
+.PHONY: reg version.go
+
+version.go:
+	echo 'package main; var version = "'`git describe --all --long`" $$USER@"`uname -n``date +/%F/%T`'"' >$@
+
+reg: version.go
+	GOPATH=$$PWD go get
+	GOPATH=$$PWD go build -o reg
