@@ -26,7 +26,7 @@ func readlines(input io.Reader, dst chan<- string, inputdone chan<- bool) {
 
 }
 
-func parse(input <-chan string, ticksctl chan<- t.Ticks, supplycmd chan<- SupplyCmd, statusctl chan<- bool) {
+func parse(input <-chan string, ticksctl chan<- t.Ticks, supplycmd chan<- SupplyCmd, acmd chan<- bool, statusctl chan<- bool) {
 	for cmd := range input {
 		cmdargs := strings.Split(cmd, " ")
 
@@ -40,7 +40,11 @@ func parse(input <-chan string, ticksctl chan<- t.Ticks, supplycmd chan<- Supply
 			Assert(len(cmdargs) == 2, "invalid syntax for + on input: ", cmd)
 			v, err := strconv.ParseFloat(cmdargs[1], 64)
 			Assert(err == nil, "parsing + on input", ":", err)
-			supplycmd <- SupplyCmd{supply: t.StuffSteps(v)}
+			supplycmd <- SupplyCmd{t.StuffSteps(v)}
+		case "aon":
+			acmd <- true
+		case "aoff":
+			acmd <- false
 		case "?":
 			Assert(len(cmdargs) == 1, "invalid syntax for ? on input: ", cmd)
 			statusctl <- true

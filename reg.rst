@@ -357,18 +357,16 @@ INPUT LANGUAGE
 input stream:
 
 ``. <ticks>``
-  If using ``-s controlled`` (see `TIME DISCRETIZATION`_ above),
-  increment the discretization counter by the specified amount of
-  ticks. Otherwise, do nothing.
+  Generate a tick event with the specified amount of
+  ticks. This can be combined with ``-t instant`` to
+  place tick generation fully under control of the input stream.
 
 ``+ <amount>``
   Add the specified number of stuff.steps to the resource
-  supply. If ``<amount>`` is ``*``, add an infinite supply.
+  supply.
 
-``- <amount>``
-
-  Substract the specified number of stuff.steps from the resource
-  supply. If ``<amount>`` is ``*``, empty the entire supply.
+``aon`` / ``aoff``
+  Enable/disable reporting supply exhaustion to the actuator.
 
 ``?``
   Emit a status record on the output stream.

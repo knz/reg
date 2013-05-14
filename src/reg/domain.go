@@ -35,6 +35,7 @@ func (d *Domain) Start(inputfile *os.File, outputfile *os.File,
 	readlines_parse := make(chan string)
 	parse_mergeticks := make(chan t.Ticks)
 	parse_integrate := make(chan SupplyCmd)
+	parse_integrate2 := make(chan bool)
 	parse_outmgt := make(chan bool)
 	integrate_outmgt := make(chan t.Status)
 	integrate_actuator := make(chan t.Status)
@@ -80,14 +81,14 @@ func (d *Domain) Start(inputfile *os.File, outputfile *os.File,
 	}
 
 	go readlines(inputfile, readlines_parse, d.inputdone)
-	go parse(readlines_parse, parse_mergeticks, parse_integrate, parse_outmgt)
+	go parse(readlines_parse, parse_mergeticks, parse_integrate, parse_integrate2, parse_outmgt)
 
 	go d.TickSource.Start(tsource_mergeticks)
 	go mergeticks(tsource_mergeticks, parse_mergeticks, mergeticksOutput)
 	go d.StepSource.Start(ssourceInput, ssourceOutput)
 	go d.Sampler.Start(sampleInput, sample_integrate)
 
-	go d.integrate(integrate_outmgt, integrate_actuator, parse_integrate, outmgt_integrate, sample_integrate)
+	go d.integrate(integrate_outmgt, integrate_actuator, parse_integrate, parse_integrate2, outmgt_integrate, sample_integrate)
 
 	go d.Actuator.Start(integrate_actuator)
 

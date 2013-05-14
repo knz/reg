@@ -40,11 +40,14 @@ func (d *Domain) integrate(
 	status chan<- t.Status,
 	action chan<- t.Status,
 	supplycmd <-chan SupplyCmd,
+	acmd <-chan bool,
 	query <-chan bool,
 	measure <-chan t.Sample) {
 
 	var supply t.StuffSteps
 	var as, qs qstate
+
+	engage := true
 
 	for {
 		update := false
@@ -64,11 +67,14 @@ func (d *Domain) integrate(
 			supply += s.supply
 			update = true
 
+		case a := <-acmd:
+			engage = a
+
 		case <-query:
 			status <- qs.make_status(supply)
 		}
 
-		if update && (supply < 0 || (supply >= 0 && as.psupply < 0)) {
+		if update && ((engage && supply < 0) || (supply >= 0 && as.psupply < 0)) {
 			action <- as.make_status(supply)
 		}
 
