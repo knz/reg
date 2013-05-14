@@ -23,5 +23,6 @@ version.go:
 	echo 'package main; var version = "'`git describe --all --long`" $$USER@"`uname -n``date +/%F/%T`'"' >$@
 
 reg: version.go
+	rm -rf pkg
 	GOPATH=$$PWD go get
-	GOPATH=$$PWD go build -o reg
+	GOPATH=$$PWD go build -o reg reg.go version.go
