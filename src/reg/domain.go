@@ -31,7 +31,6 @@ func MakeDomain(ts ticks.Source,
 func (d *Domain) Start(inputfile *os.File, outputfile *os.File,
 	outputpertype int, ThrottleMinPeriod float64, granularity t.Ticks) {
 
-	tsource_mergeticks := make(chan t.Ticks)
 	readlines_parse := make(chan string)
 	parse_mergeticks := make(chan t.Ticks)
 	parse_integrate := make(chan SupplyCmd)
@@ -43,55 +42,55 @@ func (d *Domain) Start(inputfile *os.File, outputfile *os.File,
 	sample_integrate := make(chan t.Sample)
 	outmgt_output := make(chan string)
 	output_outmgt := make(chan bool)
+	tsource_mergeticks := make(chan t.Ticks)
+	mergeticks_output := make(chan t.Ticks)
+	stepsource_output := make(chan t.TicksSteps)
 
-	mergeticksOutput := make(chan t.Ticks)
-	mergeticksOutputT := mergeticksOutput
+	go d.TickSource.Start(tsource_mergeticks)
+	go mergeticks(tsource_mergeticks, parse_mergeticks, mergeticks_output)
 
+	tickprod := mergeticks_output
 	if granularity > 0 {
-		mergeticksOutputT = make(chan t.Ticks)
-		go throttle_ticks(granularity, mergeticksOutput, mergeticksOutputT)
+		throttleticks_output := make(chan t.Ticks)
+		go throttle_ticks(granularity, tickprod, throttleticks_output)
+		tickprod = throttleticks_output
 	}
-
-	ssourceInput := mergeticksOutputT
-	ssourceOutput := make(chan t.TicksSteps)
-	sampleInput := ssourceOutput
-	flood := false
-
-	switch outputpertype {
-	case OUTPUT_FLOOD:
-		flood = true
-	case OUTPUT_THROTTLE_STEPS:
-		teesteps_throttle := make(chan float64)
-		sampleInput = make(chan t.TicksSteps)
-		go steps.TeeSteps(ssourceOutput, sampleInput, teesteps_throttle)
-		if ThrottleMinPeriod > 0 {
-			go throttle(ThrottleMinPeriod, teesteps_throttle, parse_outmgt)
-		} else {
-			go forwardctl(teesteps_throttle, parse_outmgt)
-		}
-	case OUTPUT_THROTTLE_TICKS:
+	if outputpertype == OUTPUT_THROTTLE_TICKS {
 		teeticks_throttle := make(chan float64)
-		ssourceInput = make(chan t.Ticks)
-		go ticks.TeeTicks(ssourceInput, teeticks_throttle, mergeticksOutputT)
+		teeticks_output := make(chan t.Ticks)
+		go teeticks(tickprod, teeticks_output, teeticks_throttle)
 		if ThrottleMinPeriod > 0 {
 			go throttle(ThrottleMinPeriod, teeticks_throttle, parse_outmgt)
 		} else {
 			go forwardctl(teeticks_throttle, parse_outmgt)
 		}
+		tickprod = teeticks_output
 	}
+
+	go d.StepSource.Start(tickprod, stepsource_output)
+
+	stepprod := stepsource_output
+	if outputpertype == OUTPUT_THROTTLE_STEPS {
+		teesteps_throttle := make(chan float64)
+		teesteps_output := make(chan t.TicksSteps)
+		go teesteps(stepprod, teesteps_output, teesteps_throttle)
+		if ThrottleMinPeriod > 0 {
+			go throttle(ThrottleMinPeriod, teesteps_throttle, parse_outmgt)
+		} else {
+			go forwardctl(teesteps_throttle, parse_outmgt)
+		}
+		stepprod = teesteps_output
+	}
+	go d.Sampler.Start(stepprod, sample_integrate)
 
 	go readlines(inputfile, readlines_parse, d.inputdone)
 	go parse(readlines_parse, parse_mergeticks, parse_integrate, parse_integrate2, parse_outmgt)
-
-	go d.TickSource.Start(tsource_mergeticks)
-	go mergeticks(tsource_mergeticks, parse_mergeticks, mergeticksOutput)
-	go d.StepSource.Start(ssourceInput, ssourceOutput)
-	go d.Sampler.Start(sampleInput, sample_integrate)
 
 	go d.integrate(integrate_outmgt, integrate_actuator, parse_integrate, parse_integrate2, outmgt_integrate, sample_integrate)
 
 	go d.Actuator.Start(integrate_actuator)
 
+	flood := (outputpertype == OUTPUT_FLOOD)
 	go outmgt(flood, parse_outmgt, integrate_outmgt, outmgt_integrate, outmgt_output, output_outmgt)
 	go output(outputfile.Fd(), outmgt_output, output_outmgt)
 

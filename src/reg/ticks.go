@@ -21,20 +21,34 @@ func throttle_ticks(minperiod t.Ticks, src <-chan t.Ticks, prod chan<- t.Ticks) 
 	}
 }
 
-func mergeticks(ticksext <-chan t.Ticks, ticksctl <-chan t.Ticks, tickssrc chan<- t.Ticks) {
+func teeticks(src <-chan t.Ticks, dst1 chan<- t.Ticks, dst2 chan<- float64) {
+	for a := range src {
+		dst1 <- a
+		dst2 <- float64(a)
+	}
+}
 
-	tickssrc <- <-ticksext // forward init
+func teesteps(src <-chan t.TicksSteps, dst chan<- t.TicksSteps, tee chan<- float64) {
+	for v := range src {
+		dst <- v
+		tee <- float64(v.Steps)
+	}
+}
+
+func mergeticks(src_ext <-chan t.Ticks, src_ctl <-chan t.Ticks, prod chan<- t.Ticks) {
+
+	prod <- <-src_ext // forward init
 
 	for {
 		// forward deltas from either external tick source
 		// or input stream
 		v := t.Ticks(0)
 		select {
-		case v = <-ticksctl:
-		case v = <-ticksext:
+		case v = <-src_ctl:
+		case v = <-src_ext:
 		}
 		if v > 0 {
-			tickssrc <- v
+			prod <- v
 		}
 	}
 }

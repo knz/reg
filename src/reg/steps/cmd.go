@@ -28,17 +28,32 @@ func (ss *stepsource_cmd) Start(src <-chan t.Ticks, prod chan<- t.TicksSteps) {
 
 	go ss.cmd.Start(cmdin, cmdout)
 
-	if (ss.sourcetype&t.SRC_Z != 0) || (ss.sourcetype&t.SRC_O == 0) {
-		// we produce zero as origin in this case.
-		// If the step function also produces an origin, just wait for it and then ignore.
-		tsrc := <-src
-		if ss.sourcetype&t.SRC_O != 0 {
-			args := make([]string, 1)
-			args[0] = fmt.Sprint(tsrc)
-			cmdin <- args
-			<-cmdout // drop it
+	if ss.sourcetype&t.SRC_O != 0 {
+		// the main loop below skips zero step increases.
+		// however we must guarantee at least one step event is issued
+		// as origin.
+		tval := <-src
+		args := make([]string, 1)
+		args[0] = fmt.Sprint(tval)
+		cmdin <- args
+
+		sval := t.Steps(0)
+		if ss.sourcetype&t.SRC_Z != 0 {
+			// we produce zero as origin in this case
+			<-cmdout
+		} else {
+			sval_str := <-cmdout
+			v, err := strconv.ParseFloat(sval_str, 64)
+			Assert(err == nil, "parsing steps", ":", err)
+			sval = t.Steps(v)
 		}
-		prod <- t.TicksSteps{Ticks: tsrc, Steps: 0}
+		prod <- t.TicksSteps{Ticks: tval, Steps: sval}
+
+	} else {
+		if ss.sourcetype&t.SRC_Z != 0 {
+			// we produce zero as origin in this case
+			prod <- t.TicksSteps{Ticks: <-src, Steps: 0}
+		}
 	}
 
 	var lastval t.Steps
@@ -59,6 +74,8 @@ func (ss *stepsource_cmd) Start(src <-chan t.Ticks, prod chan<- t.TicksSteps) {
 			sval = tmp
 		}
 
-		prod <- t.TicksSteps{Ticks: tval, Steps: sval}
+		if sval > 0 {
+			prod <- t.TicksSteps{Ticks: tval, Steps: sval}
+		}
 	}
 }

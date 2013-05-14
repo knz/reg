@@ -15,7 +15,12 @@ func MakeDummySource(v t.Steps) Source {
 }
 
 func (ts *stepsource_dummy) Start(src <-chan t.Ticks, prod chan<- t.TicksSteps) {
+	// origin
+	prod <- t.TicksSteps{<-src, ts.v}
+	// deltas
 	for ticks := range src {
-		prod <- t.TicksSteps{ticks, ts.v}
+		if ts.v > 0 {
+			prod <- t.TicksSteps{ticks, ts.v}
+		}
 	}
 }
