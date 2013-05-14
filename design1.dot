@@ -1,47 +1,146 @@
 digraph G {
-   input [peripheries=2];
-   output [peripheries=2];
+    /*
+        layout=neato
+        overlap=false //ipsep
+        mode=ipsep
+        sep="+20"
+   */
+   pack=true
+       
+        node [height=0.3,shape=ellipse,peripheries=1]; // processes
 
-//   subgraph cluster0 {
-      throttle [label="throttle"];
-      outmgt [shape=box];
-      throttle -> outmgt [label="statusctl\n(bool)"];
-//      label="report";
-//   }
-   integrate [shape=box];
+        readlines
+        parse
+        mergeticks
+        stepsource
+        integrate
+        outmgt
+        output
 
-//   subgraph cluster2 {
-   ticks_source [peripheries=2];
-   sample [peripheries=2];
-   teeticks;
-   ticks_source -> mergeticks  [label="ticksext\n(Ticks)"]
-   mergeticks -> teeticks [label="tickssrc\n(Ticks)"];
-   teeticks -> step_source [label="ticksin\n(Ticks)"];
-   step_source [peripheries=2];
-   step_source -> teesteps [label="tickssteps1\n(TicksSteps)"];
-   teesteps -> sample [label="tickssteps\n(TicksSteps)"];
+        node [style=dashed]; // optional processes
 
-//   label="measure";
-//   }
+        throttle_forwardctl
+        throttleticks [color=blue]
+        teesteps [color=sienna]
+        teeticks [color=green]
 
-   input -> parse;
-   parse -> integrate [label="supplycmd\n(SupplyCmd)"];
-   parse -> outmgt [label="statusctl\n(bool)"];
-   parse -> mergeticks [label="ticksctl\n(Ticks)",style=dotted];
-   
+        node [style=solid,peripheries=2]; // source/sinks processes
 
-   sample -> integrate [label="measure\n(Sample)"];
-   integrate -> actuator [label="action\n(Status)"];
+        ticksource
+        sampler
+        actuator
 
-   actuator [peripheries=2];
+        node [shape=box,fontsize=9,peripheries=1]; // channels
 
-   teeticks -> throttle [label="ticksper\n(Ticks)",style=dotted];
-   teesteps -> throttle [label="stepsper\n(Steps)",style=dotted];
+	tsource_mergeticks
+	readlines_parse
+	parse_mergeticks
+	parse_integrate [label="parse_integrate\nparse_integrate2"]
+	parse_outmgt
+	integrate_outmgt
+	integrate_actuator
+	outmgt_integrate
+	sample_integrate
+	outmgt_output
+	output_outmgt
+	mergeticks_output	
+        stepsource_output
 
-   outmgt -> integrate [label="query\n(bool)"];
-   integrate -> outmgt [label="status\n(Status)"];
+        node [style=dashed]; // optional channels
 
-   output -> outmgt [label="outready\n(bool)"];
-   outmgt -> output [label="out\n(string)"];
-  
+        teesteps_output [color=sienna]
+        teesteps_throttle [color=sienna]
+        teeticks_throttle [color=green]
+        teeticks_output [color=green]
+        throttleticks_output [color=blue]
+
+        node [peripheries=2,style=solid]; // source/sinks channels
+        ifile
+        ofile
+        inputdone
+
+
+
+        // edges around [readlines]
+        ifile -> readlines -> readlines_parse
+        readlines -> inputdone
+
+        // around [parse]
+        readlines_parse -> parse
+        parse -> parse_mergeticks [label="'. N'",constraint=false]
+        parse -> parse_integrate [label="'+ N'"]
+        parse -> parse_outmgt [label="'?'",constraint=false]
+
+        // around [integrate]
+        parse_integrate -> integrate [constraint=false]
+        integrate -> integrate_actuator
+        sample_integrate -> integrate
+        integrate -> integrate_outmgt [constraint=false]
+        // outmgt_integrate -> integrate
+        integrate -> outmgt_integrate [dir=back]
+
+        // around [actuator]
+        integrate_actuator -> actuator
+
+        // around [output]
+        outmgt_output -> output
+        output_outmgt -> output [dir=back]
+        //        output -> output_outmgt [constraint=false]
+        ofile -> output -> ofile
+
+        // around [outmgt]
+        parse_outmgt -> outmgt
+        outmgt -> outmgt_integrate
+        //        outmgt -> outmgt_output       
+        outmgt_output -> outmgt [dir=back]
+        output_outmgt -> outmgt
+        //        integrate_outmgt -> outmgt
+        outmgt -> integrate_outmgt [dir=back]
+
+        // around [ticksource] and [mergeticks]
+        ticksource -> tsource_mergeticks
+        tsource_mergeticks -> mergeticks -> mergeticks_output
+        parse_mergeticks -> mergeticks
+
+        // around [stepsource]
+        mergeticks_output -> stepsource  [label="-g 0\nnot -p ticks"]
+        stepsource -> stepsource_output
+
+        // around [sampler]
+        stepsource_output -> sampler  [label="not -p steps"]
+        sampler -> sample_integrate
+
+        // around [throttle_forwardctl]
+        throttle_forwardctl -> parse_outmgt
+
+        // optional edges
+        edge [style=dashed]
+
+        // around [throttleticks] for -g
+        edge [color=blue]
+        mergeticks_output -> throttleticks  [label="-g N\nnot -p ticks"]
+        throttleticks -> throttleticks_output
+        throttleticks_output -> stepsource [label="-g N\nnot -p ticks",constraint=false]
+
+        // around [teeticks] for -p ticks
+        edge [color=green]
+        throttleticks_output -> teeticks  [label="-g N\n-p ticks"]
+        teeticks -> teeticks_throttle
+        mergeticks_output -> teeticks  [label="-g 0\n-p ticks"]
+        teeticks -> teeticks_output
+        teeticks_output -> stepsource [color=green,label="-p ticks",constraint=false]
+
+        teeticks_throttle -> throttle_forwardctl [label="-p ticks"]
+
+        // around [teesteps] for -p steps
+        edge [color=sienna]
+        stepsource_output -> teesteps [label="-p steps"]
+        teesteps -> teesteps_output
+        teesteps_output -> sampler [label="-p steps",constraint=false]
+        teesteps -> teesteps_throttle
+
+        teesteps_throttle -> throttle_forwardctl [label="-p steps"]
+
+
+
 }

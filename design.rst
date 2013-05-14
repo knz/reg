@@ -11,7 +11,7 @@ Overview
 The following diagram shows the overall structure of ``reg``'s process
 network:
 
-.. image:: design2.png
+.. image:: design1.png
    :align: center
    :width: 20%
 
@@ -23,35 +23,28 @@ The following processes are defined:
 ``output``
    Tests availability of the output stream, outputs records.
 
-``protocol``
-   Acts upon the harnessed process(es).
+``actuator``
+   Acts upon the monitored system.
 
-``measure``
-   Generates tick, step and measurement events for ``integrate``. Optionally
-   generates tick and step events for ``report`` if ``-R`` is used.
+``ticksource``, ``stepsource``, ``sampler``
+   Generate tick, step and measurement events for ``integrate``. Optionally
+   generates tick and step events for ``throttle`` if ``-p`` is used.
 
 ``parse``
    Analyses commands from the input stream. Depending on the command,
    generates either:
 
-   - supply events to ``integrate`` (commands ``+`` and ``-``),
+   - supply events to ``integrate`` (commands ``+``, ``aon``, ``aoff``)
 
-   - report events to ``report`` (command ``?``).
+   - report events to ``outmgt`` (command ``?``)
 
-   - tick events to ``measure`` if flag ``-t controlled`` is used (command ``.``).
+   - tick events to ``mergeticks`` (command ``.``)
 
-``report``
+``outmgt``
    Formats status reports for ``output``, by querying ``integrate``
    for the current status of the supply bin(s).
 
 ``integrate``
   Consumes tick, step and measurement events and updates the supply bin(s).
-  Generates action events for ``protocol`` and answers status requests
-  from ``report``.
-
-Detailed network
-================
-
-.. image:: design1.png
-   :align: center
-   :width: 40%
+  Generates action events for ``actuator`` and answers status requests
+  from ``outmgt``.
