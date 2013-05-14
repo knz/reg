@@ -86,10 +86,10 @@ Resource management is modeled as follows:
   available, see `TIME DISCRETIZATION`_ below.  The unit for *t* is
   *ticks*.
 
-- *progress* is measured using a function *d(t)*, for example "user
+- *progress* is measured using a function *p(t)*, for example "user
   time", which increases monotonically while the monitoring system is
   active. Other options are available, see `PROGRESS INDICATOR`_
-  below. The unit for *d(t)* values is *steps*.
+  below. The unit for *p(t)* values is *steps*.
 
 - the *current level* of resource usage *f(t)* is observed at every
   tick. The unit for values of *f(t)* is *stuff*.  (For example bytes
@@ -100,12 +100,12 @@ Using this model, ``reg`` regulates resource usage as follows:
 - ``reg`` maintains a *supply*, expressed in
   *stuff.steps* (amount of stuff, times amount of steps).
 
-- at each tick event, the increase of steps *d(t)* is observed.  Upon
-  each increment of *d* from *dp = d(tp)* (previous step counter) to
-  *dn = d(t)* (new step counter):
+- at each tick event, the increase of steps *p(t)* is observed.  Upon
+  each increment of *p* from *p = p(tp)* (previous step counter) to
+  *p' = p(t)* (new step counter):
 
   1. ``reg`` measures the *integral resource consumption* since the
-     *last step*, computed by *f(t)* times *(dn - dp)*.
+     *last step*, computed by *f(t)* times *(p - p')*.
 
   2. the integral resource consumption is substracted from the supply;
 
@@ -123,17 +123,17 @@ supply becomes positive again. The step function is the user time used
 by the process in seconds.
 
 If the resource is current power usage (watts), the supply is
-expressed in watts.seconds (energy). With a supply of 1 watt.second, a
-process that consumes .5 watts per second will be stopped after 2
-seconds, and a process that consumes 2 watts per second will be
+expressed in joules (watts.seconds = energy). With a supply of 1 joule, a
+process that consumes .5 joules per second will be stopped after 2
+seconds, and a process that consumes 2 joules per second will be
 stopped after .5 seconds.
 
-If the resource is current memory footprint (bytes), the supply is
-expressed in bytes.seconds. With a supply of 100MBytes.second, a
-process that allocates 10MBytes every second will stop after 10
-seconds, whereas one that allocates 1GByte in one go will be stopped
-directly after this first allocation with a remaining supply of -900
-MBytes.second.
+If the resource is current channel throughput (bytes/second), the
+supply is expressed in bytes (bytes/second . seconds). With a supply
+of 100MBytes, a process that consumes 10MB/s every second will stop
+after 10 seconds, whereas one that uses 1GB/s will be stopped
+immediately after the first tick with a remaining supply of -900
+MBytes.
 
 Note: regulation only occurs when *t* increases.
 
@@ -464,7 +464,7 @@ The following actuators have therefore the same effect:
 ``-a proc:'while read a; do echo $a>/dev/tty; done'``
 
 Note: the effect of an actuator should be to stop/throttle the
-progress function *d(t)* (e.g. make it constant), so that its integral
+progress function *p(t)* (e.g. make it constant), so that its integral
 resource consumption stays zero until the supply is increased and the
 process is restarted.
 
