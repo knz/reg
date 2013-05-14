@@ -5,6 +5,9 @@
 This is a tool to help regulate resource usage of a system
 asynchronously.
 
+For more information, see the manual page reg(1) 
+(generated from ``reg.rst``).
+
 Requirements
 ------------
 
@@ -27,7 +30,3 @@ To build ``reg`` and the documentation::
 
 After building, ``reg`` is ready to use.
 
-More information
-----------------
-
-Check the manual page reg(1) (generated from ``reg.rst``).
