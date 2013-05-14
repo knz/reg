@@ -3,17 +3,24 @@
 ======================
 
 :Author: kena
-:Date: April 2013
+:Date: May 2013
 
 Overview
 ========
 
-The following diagram shows the overall structure of ``reg``'s process
+The following diagram shows a high level overview of ``reg``'s process
 network:
+
+.. image:: design2.png
+   :align: center
+
+Detailed interactions
+=====================
+
+In the following diagram, boxes represent channels and ellipses represent processes.
 
 .. image:: design1.png
    :align: center
-   :width: 20%
 
 The following processes are defined:
 

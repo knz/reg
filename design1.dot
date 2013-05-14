@@ -12,20 +12,20 @@ digraph G {
         readlines
         parse
         mergeticks
-        stepsource
         integrate
         outmgt
         output
 
         node [style=dashed]; // optional processes
 
-        throttle_forwardctl
+        throttle_forwardctl [label="throttle\nforwardctl"]
         throttleticks [color=blue]
         teesteps [color=sienna]
         teeticks [color=green]
 
         node [style=solid,peripheries=2]; // source/sinks processes
 
+        stepsource
         ticksource
         sampler
         actuator
@@ -75,9 +75,9 @@ digraph G {
         parse_integrate -> integrate [constraint=false]
         integrate -> integrate_actuator
         sample_integrate -> integrate
-        integrate -> integrate_outmgt [constraint=false]
+        integrate -> integrate_outmgt [constraint=false,label="response"]
         // outmgt_integrate -> integrate
-        integrate -> outmgt_integrate [dir=back]
+        integrate -> outmgt_integrate [dir=back,label="query"]
 
         // around [actuator]
         integrate_actuator -> actuator

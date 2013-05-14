@@ -1,0 +1,33 @@
+digraph G {
+
+        integrate
+        parse
+        output
+
+        node [peripheries=2]
+        ticksource
+        stepsource
+        sampler
+        actuator
+
+        ifile [shape=ellipse]
+        ofile [shape=ellipse]
+
+        ifile -> parse
+
+        ticksource -> stepsource [label=ticks]
+        parse -> stepsource [style=dashed,constraint=false,label="'.'"]
+        stepsource -> sampler [label=steps]
+        sampler -> integrate [label=usage]
+        integrate -> actuator [label=status]
+           
+           ticksource -> output [style=dashed,label="-p"]
+           stepsource -> output [style=dashed,label="-p"]
+
+        parse -> output [label="'?'"]
+        parse -> integrate [label="'+'",constraint=false]
+        output -> integrate [constraint=false]
+        integrate -> output [constraint=false]
+        output -> ofile
+
+}
