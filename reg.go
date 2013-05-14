@@ -150,7 +150,7 @@ func main() {
 		a = act.MakeDummyActuator()
 	case "print":
 		var af *os.File
-		if spec_arg == "-" {
+		if spec_arg == "-" || spec_arg == "" {
 			af = os.Stdout
 		} else {
 			af, err = os.OpenFile(spec_arg, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
